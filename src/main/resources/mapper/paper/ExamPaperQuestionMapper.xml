@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.paper.mapper.ExamPaperQuestionMapper">
+
+    <resultMap id="PaperQuestionVOResult" type="com.aiexam.paper.vo.PaperQuestionVO">
+        <id property="questionId" column="question_id"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="section" column="section"/>
+        <result property="questionScore" column="question_score"/>
+        <result property="type" column="q_type"/>
+        <result property="title" column="q_title"/>
+        <result property="options" column="q_options"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+    </resultMap>
+
+    <!-- 试卷详情：一次 join 查出题目列表，不含答案/解析 -->
+    <select id="selectPaperQuestions" resultMap="PaperQuestionVOResult">
+        SELECT pq.question_id,
+               pq.sort_order,
+               pq.section,
+               pq.question_score,
+               q.type    AS q_type,
+               q.title   AS q_title,
+               q.options AS q_options
+        FROM exam_paper_question pq
+        JOIN question q ON q.id = pq.question_id AND q.deleted = 0
+        WHERE pq.paper_id = #{paperId}
+        ORDER BY pq.sort_order
+    </select>
+</mapper>

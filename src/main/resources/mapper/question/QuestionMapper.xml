@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.question.mapper.QuestionMapper">
+
+    <!-- 智能组卷：按题型/难度/分类随机抽题，只取ID -->
+    <select id="selectRandomIds" resultType="long">
+        SELECT id FROM question
+        WHERE deleted = 0
+          AND type = #{type}
+          AND difficulty = #{difficulty}
+        <if test="category != null and category != ''">
+          AND category = #{category}
+        </if>
+        <if test="excludeIds != null and excludeIds.size() > 0">
+          AND id NOT IN
+          <foreach collection="excludeIds" item="item" open="(" separator="," close=")">
+            #{item}
+          </foreach>
+        </if>
+        ORDER BY RAND()
+        LIMIT #{limit}
+    </select>
+</mapper>
