@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.exam.mapper.ExamUserMapper">
+
+    <resultMap id="ExamStudentVOResult" type="com.aiexam.exam.vo.ExamStudentVO">
+        <result property="userId"     column="user_id"/>
+        <result property="realName"   column="real_name"/>
+        <result property="userNo"     column="user_no"/>
+        <result property="attempts"   column="attempts"/>
+        <result property="bestScore"  column="best_score"/>
+        <result property="assignTime" column="assign_time"/>
+    </resultMap>
+
+    <!-- 考试考生列表：join 用户表取姓名学号 -->
+    <select id="selectExamStudents" resultMap="ExamStudentVOResult">
+        SELECT eu.user_id,
+               u.real_name,
+               u.user_no,
+               eu.attempts,
+               eu.best_score,
+               eu.assign_time
+        FROM exam_user eu
+        JOIN sys_user u ON u.id = eu.user_id AND u.deleted = 0
+        WHERE eu.exam_id = #{examId}
+        ORDER BY eu.id
+    </select>
+</mapper>

@@ -1,7 +1,7 @@
 package com.aiexam.system.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.aiexam.common.BaseEntity;
@@ -59,5 +59,6 @@ public class SysUser extends BaseEntity {
     private String lastLoginIp;
 
     /** 角色列表（联表查询用） */
+    @TableField(exist = false)
     private List<SysRole> roles;
 }
