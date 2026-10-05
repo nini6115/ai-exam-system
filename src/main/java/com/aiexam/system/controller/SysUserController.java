@@ -1,10 +1,20 @@
 package com.aiexam.system.controller;
 
 import com.aiexam.common.AjaxResult;
+import com.aiexam.common.vo.PageVO;
+import com.aiexam.system.dto.AssignRoleDTO;
+import com.aiexam.system.dto.ChangePasswordDTO;
 import com.aiexam.system.dto.LoginDTO;
+import com.aiexam.system.dto.ResetPasswordDTO;
+import com.aiexam.system.dto.UpdateProfileDTO;
+import com.aiexam.system.dto.UpdateStatusDTO;
+import com.aiexam.system.dto.UserAddDTO;
+import com.aiexam.system.dto.UserQueryDTO;
+import com.aiexam.system.dto.UserUpdateDTO;
 import com.aiexam.system.service.SysUserService;
 import com.aiexam.system.vo.CaptchaVO;
 import com.aiexam.system.vo.LoginVO;
+import com.aiexam.system.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +56,93 @@ public class SysUserController {
     @PostMapping("/logout")
     public AjaxResult<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
         sysUserService.logout(token);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 分页查询用户列表
+     */
+    @GetMapping("/list")
+    public AjaxResult<PageVO<UserVO>> list(UserQueryDTO dto) {
+        return AjaxResult.success(sysUserService.listUsers(dto));
+    }
+
+    /**
+     * 查询用户详情
+     */
+    @GetMapping("/{id}")
+    public AjaxResult<UserVO> detail(@PathVariable Long id) {
+        return AjaxResult.success(sysUserService.getUserDetail(id));
+    }
+
+    /**
+     * 新增用户
+     */
+    @PostMapping
+    public AjaxResult<Long> add(@Valid @RequestBody UserAddDTO dto) {
+        return AjaxResult.success(sysUserService.addUser(dto));
+    }
+
+    /**
+     * 修改用户
+     */
+    @PutMapping
+    public AjaxResult<Void> update(@Valid @RequestBody UserUpdateDTO dto) {
+        sysUserService.updateUser(dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 删除用户（逻辑删除）
+     */
+    @DeleteMapping("/{id}")
+    public AjaxResult<Void> delete(@PathVariable Long id) {
+        sysUserService.deleteUser(id);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 重置密码
+     */
+    @PutMapping("/resetPwd")
+    public AjaxResult<Void> resetPwd(@Valid @RequestBody ResetPasswordDTO dto) {
+        sysUserService.resetPassword(dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 启用/禁用用户
+     */
+    @PutMapping("/status")
+    public AjaxResult<Void> updateStatus(@Valid @RequestBody UpdateStatusDTO dto) {
+        sysUserService.updateStatus(dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 分配角色（全量覆盖）
+     */
+    @PutMapping("/assignRole")
+    public AjaxResult<Void> assignRole(@Valid @RequestBody AssignRoleDTO dto) {
+        sysUserService.assignRole(dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 修改个人资料（当前登录用户）
+     */
+    @PutMapping("/profile")
+    public AjaxResult<Void> updateProfile(@Valid @RequestBody UpdateProfileDTO dto) {
+        sysUserService.updateProfile(dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 修改个人密码（当前登录用户）
+     */
+    @PutMapping("/changePwd")
+    public AjaxResult<Void> changePwd(@Valid @RequestBody ChangePasswordDTO dto) {
+        sysUserService.changePassword(dto);
         return AjaxResult.success();
     }
 

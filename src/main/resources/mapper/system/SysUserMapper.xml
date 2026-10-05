@@ -68,6 +68,45 @@
           AND u.deleted = 0
     </select>
 
+    <!-- 分页查询用户列表（多条件动态 SQL；角色单独批量查，避免联表导致 total 统计翻倍） -->
+    <select id="selectUserPage" resultMap="BaseResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM sys_user u
+        WHERE u.deleted = 0
+        <if test="q.username != null and q.username != ''">
+            AND u.username LIKE CONCAT('%', #{q.username}, '%')
+        </if>
+        <if test="q.realName != null and q.realName != ''">
+            AND u.real_name LIKE CONCAT('%', #{q.realName}, '%')
+        </if>
+        <if test="q.status != null">
+            AND u.status = #{q.status}
+        </if>
+        <if test="q.roleCode != null and q.roleCode != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM sys_user_role ur2
+                INNER JOIN sys_role r2 ON r2.id = ur2.role_id
+                WHERE ur2.user_id = u.id AND r2.role_code = #{q.roleCode}
+            )
+        </if>
+        ORDER BY u.id DESC
+    </select>
+
+    <!-- 批量插入用户角色关联 -->
+    <insert id="insertUserRoles">
+        INSERT INTO sys_user_role (user_id, role_id) VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{userId}, #{roleId})
+        </foreach>
+    </insert>
+
+    <!-- 删除用户所有角色关联 -->
+    <delete id="deleteUserRoles">
+        DELETE FROM sys_user_role WHERE user_id = #{userId}
+    </delete>
+
     <!-- 更新登录信息 -->
     <update id="updateLoginInfo">
         UPDATE sys_user
