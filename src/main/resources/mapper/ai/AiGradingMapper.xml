@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.ai.mapper.AiGradingMapper">
+
+    <!-- 待判口径：JOIN question 判 type=5 是题型唯一权威来源（不靠 graded_by 推断）；
+         不滤 q.deleted——判分依据以交卷时快照为准（correct_answer/full_score 已冗余在明细上），
+         题库后续逻辑删除不影响历史判分。
+         selectPendingGrades 与 selectSubjectiveSummary 必须保持同一口径，
+         否则会出现"永远判不完"的口径漂移 -->
+    <resultMap id="PendingGradeItemResult" type="com.aiexam.ai.vo.PendingGradeItemVO">
+        <id property="detailId" column="id"/>
+        <result property="sheetId"       column="sheet_id"/>
+        <result property="questionId"    column="question_id"/>
+        <result property="sortOrder"     column="sort_order"/>
+        <result property="title"         column="title"/>
+        <result property="userAnswer"    column="user_answer"/>
+        <result property="correctAnswer" column="correct_answer"/>
+        <result property="analysis"      column="analysis"/>
+        <result property="fullScore"     column="full_score"/>
+    </resultMap>
+
+    <!-- 某考试全部待判主观题明细：仅已交卷答卷（2已交/3强制/4超时）且未判分 -->
+    <select id="selectPendingGrades" resultMap="PendingGradeItemResult">
+        SELECT d.id,
+               d.sheet_id,
+               d.question_id,
+               d.sort_order,
+               q.title,
+               d.user_answer,
+               d.correct_answer,
+               q.analysis,
+               d.full_score
+        FROM answer_detail d
+        JOIN answer_sheet s ON s.id = d.sheet_id
+        JOIN question q ON q.id = d.question_id AND q.type = 5
+        WHERE s.exam_id = #{examId}
+          AND s.status IN (2, 3, 4)
+          AND d.graded_by IS NULL
+        ORDER BY s.id, d.sort_order
+    </select>
+
+    <resultMap id="SubjectiveSummaryResult" type="com.aiexam.ai.vo.SubjectiveSummaryVO">
+        <result property="ungradedCount"   column="ungraded_count"/>
+        <result property="subjectiveScore" column="subjective_score"/>
+    </resultMap>
+
+    <!-- 主观题判分进度：SUM 忽略 NULL（未判明细 score 为 NULL），COALESCE 空集兜底 0 -->
+    <select id="selectSubjectiveSummary" resultMap="SubjectiveSummaryResult">
+        SELECT COUNT(CASE WHEN d.graded_by IS NULL THEN 1 END) AS ungraded_count,
+               COALESCE(SUM(d.score), 0)                       AS subjective_score
+        FROM answer_detail d
+        JOIN question q ON q.id = d.question_id AND q.type = 5
+        WHERE d.sheet_id = #{sheetId}
+    </select>
+
+    <resultMap id="GradeDetailVOResult" type="com.aiexam.ai.vo.GradeDetailVO">
+        <id property="detailId" column="detail_id"/>
+        <result property="questionId"    column="question_id"/>
+        <result property="sortOrder"     column="sort_order"/>
+        <result property="type"          column="type"/>
+        <result property="title"         column="title"/>
+        <result property="userAnswer"    column="user_answer"/>
+        <result property="correctAnswer" column="correct_answer"/>
+        <result property="score"         column="score"/>
+        <result property="fullScore"     column="full_score"/>
+        <result property="isCorrect"     column="is_correct"/>
+        <result property="gradedBy"      column="graded_by"/>
+        <result property="gradeComment"  column="grade_comment"/>
+    </resultMap>
+
+    <!-- 教师复核：答卷逐题判分详情（含客观题，整卷呈现）。
+         JOIN answer_sheet 限定 sheet 属于本场考试，越权 sheetId 返回空列表 -->
+    <select id="selectSheetGradeDetails" resultMap="GradeDetailVOResult">
+        SELECT d.id           AS detail_id,
+               d.question_id,
+               d.sort_order,
+               q.type,
+               q.title,
+               d.user_answer,
+               d.correct_answer,
+               d.score,
+               d.full_score,
+               d.is_correct,
+               d.graded_by,
+               d.grade_comment
+        FROM answer_sheet s
+        JOIN answer_detail d ON d.sheet_id = s.id
+        JOIN question q ON q.id = d.question_id
+        WHERE s.id = #{sheetId}
+          AND s.exam_id = #{examId}
+        ORDER BY d.sort_order
+    </select>
+
+    <!-- AI 判分落库：graded_by IS NULL 守卫=幂等（防重锁过期后二次触发/与人工改分竞争双写）；
+         grader_id 保持 NULL（AI 无用户身份）；affected=0 表示已被其他判分处理，调用方按已判跳过 -->
+    <update id="markAiGraded">
+        UPDATE answer_detail
+        SET score         = #{score},
+            is_correct    = #{isCorrect},
+            graded_by     = 3,
+            grade_time    = #{now},
+            grade_comment = #{comment}
+        WHERE id = #{id}
+          AND graded_by IS NULL
+    </update>
+
+    <!-- 人工改分落库：graded_by=2 覆盖 AI 结果；
+         comment 为 null 时不覆盖原评语（保留 AI 评语供复核留痕） -->
+    <update id="markManualGraded">
+        UPDATE answer_detail
+        SET score      = #{score},
+            is_correct = #{isCorrect},
+            graded_by  = 2,
+            grader_id  = #{graderId},
+            grade_time = #{now}
+        <if test="comment != null">
+            ,grade_comment = #{comment}
+        </if>
+        WHERE id = #{id}
+    </update>
+</mapper>
