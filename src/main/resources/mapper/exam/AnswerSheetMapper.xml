@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.exam.mapper.AnswerSheetMapper">
+
+    <!-- 条件抢占收卷：只有答题中(1)的答卷能被打上终态。
+         事务内执行会持有行锁到提交，手动/切屏强制/超时自动三方并发时
+         只有一个入口能改成功，其余入口 affected=0 直接放弃，保证判分落库恰好一次。
+         update_time 由列上 ON UPDATE CURRENT_TIMESTAMP 自动维护 -->
+    <update id="markSubmitted">
+        UPDATE answer_sheet
+        SET status      = #{status},
+            submit_time = #{now},
+            submit_type = #{submitType}
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+
+    <!-- 原子累加切屏次数：守卫答题中状态，收卷后的迟到上报 affected=0 -->
+    <update id="increaseScreenSwitch">
+        UPDATE answer_sheet
+        SET screen_switch_count = screen_switch_count + 1
+        WHERE id = #{id}
+          AND status = 1
+    </update>
+</mapper>

@@ -4,11 +4,15 @@ import com.aiexam.common.AjaxResult;
 import com.aiexam.common.utils.IpUtil;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.exam.dto.AnswerSaveDTO;
+import com.aiexam.exam.dto.CheatReportDTO;
+import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
 import com.aiexam.exam.service.AnswerSheetService;
 import com.aiexam.exam.service.ExamService;
+import com.aiexam.exam.vo.CheatReportVO;
 import com.aiexam.exam.vo.ExamDetailVO;
+import com.aiexam.exam.vo.ExamHallVO;
 import com.aiexam.exam.vo.ExamStartVO;
 import com.aiexam.exam.vo.ExamVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -83,5 +87,21 @@ public class ExamController {
     public AjaxResult<Void> submit(@PathVariable Long id) {
         answerSheetService.submit(id);
         return AjaxResult.success();
+    }
+
+    /**
+     * 学生考试大厅：我被安排的考试列表（支持状态筛选），状态按时间实时推导
+     */
+    @GetMapping("/my/list")
+    public AjaxResult<PageVO<ExamHallVO>> myList(ExamHallQueryDTO dto) {
+        return AjaxResult.success(examService.getMyExams(dto));
+    }
+
+    /**
+     * 防作弊上报：切屏/离开超时写记录；切屏超限按配置警告或强制交卷
+     */
+    @PostMapping("/{id}/cheat")
+    public AjaxResult<CheatReportVO> cheat(@PathVariable Long id, @Valid @RequestBody CheatReportDTO dto) {
+        return AjaxResult.success(answerSheetService.reportCheat(id, dto));
     }
 }

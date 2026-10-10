@@ -2,6 +2,7 @@ package com.aiexam.exam.service.impl;
 
 import com.aiexam.common.context.UserContext;
 import com.aiexam.common.vo.PageVO;
+import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
 import com.aiexam.exam.entity.Exam;
@@ -10,6 +11,7 @@ import com.aiexam.exam.mapper.ExamMapper;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.exam.service.ExamService;
 import com.aiexam.exam.vo.ExamDetailVO;
+import com.aiexam.exam.vo.ExamHallVO;
 import com.aiexam.exam.vo.ExamStudentVO;
 import com.aiexam.exam.vo.ExamVO;
 import com.aiexam.paper.entity.ExamPaper;
@@ -18,6 +20,7 @@ import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.entity.SysUser;
 import com.aiexam.system.mapper.SysRoleMapper;
 import com.aiexam.system.mapper.SysUserMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
@@ -63,6 +66,8 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
     private static final int STATUS_NOT_STARTED = 1;
     private static final int STATUS_ONGOING = 2;
     private static final int STATUS_FINISHED = 3;
+    /** 答卷状态：1答题中（答题中不算已交卷，分数不可见） */
+    private static final int STATUS_SHEET_ANSWERING = 1;
 
     @Autowired
     private ExamUserMapper examUserMapper;
@@ -175,6 +180,27 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
     }
 
     @Override
+    public PageVO<ExamHallVO> getMyExams(ExamHallQueryDTO dto) {
+        checkStudent();
+        if (dto.getStatus() != null && (dto.getStatus() < STATUS_NOT_STARTED || dto.getStatus() > STATUS_FINISHED)) {
+            throw new RuntimeException("状态筛选参数非法");
+        }
+        Page<ExamHallVO> page = new Page<>(dto.getPageNum(),
+                Math.min(dto.getPageSize(), MAX_PAGE_SIZE));
+        IPage<ExamHallVO> result = examUserMapper.selectMyExamPage(page, UserContext.getUserId(), dto.getStatus());
+        // 脱敏：未交卷或未配置交卷即显成绩时，分数不下发
+        result.getRecords().forEach(vo -> {
+            boolean visible = vo.getSheetStatus() != null && vo.getSheetStatus() != STATUS_SHEET_ANSWERING
+                    && Integer.valueOf(1).equals(vo.getShowScoreAfter());
+            vo.setScoreVisible(visible);
+            if (!visible) {
+                vo.setBestScore(null);
+            }
+        });
+        return PageVO.of(page, result.getRecords());
+    }
+
+    @Override
     public ExamDetailVO getExamDetail(Long id) {
         checkTeacherOrAdmin();
         Exam exam = getById(id);
@@ -220,6 +246,18 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
         boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
                 .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode())
                         || TEACHER_ROLE_CODE.equals(r.getRoleCode()));
+        if (!allowed) {
+            throw new RuntimeException("无权限操作");
+        }
+    }
+
+    /**
+     * 学生权限校验（粗粒度：当前登录用户须持有 student 角色）
+     */
+    private void checkStudent() {
+        Long userId = UserContext.getUserId();
+        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
+                .anyMatch(r -> STUDENT_ROLE_CODE.equals(r.getRoleCode()));
         if (!allowed) {
             throw new RuntimeException("无权限操作");
         }

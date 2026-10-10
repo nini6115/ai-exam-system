@@ -1,9 +1,11 @@
 package com.aiexam.exam.service;
 
 import com.aiexam.common.vo.PageVO;
+import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
 import com.aiexam.exam.vo.ExamDetailVO;
+import com.aiexam.exam.vo.ExamHallVO;
 import com.aiexam.exam.vo.ExamVO;
 
 /**
@@ -34,4 +36,12 @@ public interface ExamService {
      * @return 考试详情
      */
     ExamDetailVO getExamDetail(Long id);
+
+    /**
+     * 学生考试大厅：我被安排的考试分页（状态按时间实时推导）
+     *
+     * @param dto 查询参数（状态筛选可选）
+     * @return 考试分页
+     */
+    PageVO<ExamHallVO> getMyExams(ExamHallQueryDTO dto);
 }
