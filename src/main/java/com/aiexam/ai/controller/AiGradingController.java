@@ -6,6 +6,7 @@ import com.aiexam.ai.vo.GradeBatchResultVO;
 import com.aiexam.ai.vo.GradeDetailVO;
 import com.aiexam.ai.vo.SheetScoreSummaryVO;
 import com.aiexam.common.AjaxResult;
+import com.aiexam.common.annotation.OperationLog;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,7 @@ public class AiGradingController {
      * 触发整场考试批量 AI 判卷（主观题串行逐题判分，失败逐题返回，可重复触发重试）
      */
     @PostMapping("/exams/{examId}/grade")
+    @OperationLog(module = "AI判卷", action = "批量AI判卷")
     public AjaxResult<GradeBatchResultVO> grade(@PathVariable Long examId) {
         return AjaxResult.success(aiGradingService.gradeExam(examId));
     }
@@ -49,6 +51,7 @@ public class AiGradingController {
      * 人工改分一道主观题（graded_by=2），返回该卷最新成绩汇总
      */
     @PutMapping("/details/{detailId}")
+    @OperationLog(module = "AI判卷", action = "人工改分")
     public AjaxResult<SheetScoreSummaryVO> manualGrade(@PathVariable Long detailId,
                                                        @Valid @RequestBody ManualGradeDTO dto) {
         return AjaxResult.success(aiGradingService.manualGrade(detailId, dto));

@@ -1,6 +1,7 @@
 package com.aiexam.paper.controller;
 
 import com.aiexam.common.AjaxResult;
+import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.paper.dto.PaperCreateDTO;
 import com.aiexam.paper.dto.PaperGenerateDTO;
@@ -31,6 +32,7 @@ public class ExamPaperController {
      * 智能组卷：按题型/难度/分类随机抽题生成试卷
      */
     @PostMapping("/generate")
+    @OperationLog(module = "试卷管理", action = "智能组卷")
     public AjaxResult<Long> generate(@Valid @RequestBody PaperGenerateDTO dto) {
         return AjaxResult.success(examPaperService.generatePaper(dto));
     }
@@ -39,6 +41,7 @@ public class ExamPaperController {
      * 手动组卷：按题目ID列表直接组卷
      */
     @PostMapping("/create")
+    @OperationLog(module = "试卷管理", action = "手动组卷")
     public AjaxResult<Long> create(@Valid @RequestBody PaperCreateDTO dto) {
         return AjaxResult.success(examPaperService.createPaper(dto));
     }

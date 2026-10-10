@@ -1,6 +1,7 @@
 package com.aiexam.exam.controller;
 
 import com.aiexam.common.AjaxResult;
+import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.utils.IpUtil;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.exam.dto.AnswerSaveDTO;
@@ -42,6 +43,7 @@ public class ExamController {
      * 发布考试：选择试卷、设置时间/时长/防作弊参数、指定考生
      */
     @PostMapping("/publish")
+    @OperationLog(module = "考试管理", action = "发布考试")
     public AjaxResult<Long> publish(@Valid @RequestBody ExamPublishDTO dto) {
         return AjaxResult.success(examService.publish(dto));
     }

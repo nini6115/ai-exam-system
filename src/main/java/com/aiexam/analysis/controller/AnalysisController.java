@@ -6,6 +6,7 @@ import com.aiexam.analysis.vo.ExamStatsVO;
 import com.aiexam.analysis.vo.ScoreExportVO;
 import com.aiexam.analysis.vo.ScoreItemVO;
 import com.aiexam.common.AjaxResult;
+import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.vo.PageVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -53,6 +54,7 @@ public class AnalysisController {
      * CSV 带 UTF-8 BOM，Excel 双击打开中文不乱码；文件名按 RFC 5987 编码支持中文。
      */
     @GetMapping("/{examId}/export")
+    @OperationLog(module = "成绩分析", action = "导出成绩明细")
     public ResponseEntity<byte[]> export(@PathVariable Long examId,
                                          @RequestParam(required = false) String keyword) {
         ScoreExportVO vo = analysisService.exportScores(examId, keyword);
