@@ -7,7 +7,10 @@ import com.aiexam.analysis.vo.ScoreExportVO;
 import com.aiexam.analysis.vo.ScoreItemVO;
 import com.aiexam.common.AjaxResult;
 import com.aiexam.common.annotation.OperationLog;
+import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.vo.PageVO;
+import org.apache.shiro.authz.annotation.Logical;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,6 +38,7 @@ public class AnalysisController {
      * 考试统计概览：参考/缺考人数、均分极值、及格率、分数段分布
      */
     @GetMapping("/{examId}/stats")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     public AjaxResult<ExamStatsVO> stats(@PathVariable Long examId) {
         return AjaxResult.success(analysisService.getExamStats(examId));
     }
@@ -43,6 +47,7 @@ public class AnalysisController {
      * 成绩明细分页：本场考试全名单（未考也返回），支持姓名学号搜索
      */
     @GetMapping("/{examId}/scores")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     public AjaxResult<PageVO<ScoreItemVO>> scores(@PathVariable Long examId, ScoreQueryDTO dto) {
         return AjaxResult.success(analysisService.getScorePage(examId, dto));
     }
@@ -54,6 +59,7 @@ public class AnalysisController {
      * CSV 带 UTF-8 BOM，Excel 双击打开中文不乱码；文件名按 RFC 5987 编码支持中文。
      */
     @GetMapping("/{examId}/export")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     @OperationLog(module = "成绩分析", action = "导出成绩明细")
     public ResponseEntity<byte[]> export(@PathVariable Long examId,
                                          @RequestParam(required = false) String keyword) {

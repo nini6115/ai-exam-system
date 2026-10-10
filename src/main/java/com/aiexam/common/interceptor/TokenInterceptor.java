@@ -2,11 +2,15 @@ package com.aiexam.common.interceptor;
 
 import com.aiexam.common.context.LoginUser;
 import com.aiexam.common.context.UserContext;
+import com.aiexam.common.shiro.TokenAuthenticationToken;
 import com.aiexam.system.entity.SysUser;
 import com.aiexam.system.mapper.SysUserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -30,6 +34,9 @@ public class TokenInterceptor implements HandlerInterceptor {
 
     @Autowired
     private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private SecurityManager securityManager;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -64,11 +71,19 @@ public class TokenInterceptor implements HandlerInterceptor {
         LoginUser loginUser = new LoginUser(user.getId(), user.getUsername(), user.getRealName());
         UserContext.set(loginUser);
 
+        // 绑定 Shiro Subject：让 @RequiresRoles 等注解在本请求生效
+        // （桥接 Token 走 Realm 认证，密码比对已在登录接口完成）
+        Subject subject = new Subject.Builder(securityManager).buildSubject();
+        subject.login(new TokenAuthenticationToken(loginUser, token));
+        ThreadContext.bind(subject);
+
         return true;
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 与 UserContext.clear 并列的双 ThreadLocal 清理（afterCompletion 异常时也保证调用）
+        ThreadContext.unbindSubject();
         UserContext.clear();
     }
 

@@ -9,11 +9,13 @@ import com.aiexam.system.entity.SysOperLog;
 import com.aiexam.system.service.SysOperLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authz.AuthorizationException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -28,6 +30,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * 此类参数抖动不记录——操作日志只记用户操作，不记参数错误。
  */
 @Slf4j
+@Order(1)
 @Aspect
 @Component
 public class OperationLogAspect {
@@ -39,6 +42,8 @@ public class OperationLogAspect {
     /** 结果码：与 AjaxResult 一致 */
     private static final int RESULT_SUCCESS = 200;
     private static final int RESULT_ERROR = 500;
+    /** Shiro 鉴权失败（与全局异常处理器的 403 对齐，越权尝试也留审计痕迹） */
+    private static final int RESULT_FORBIDDEN = 403;
 
     @Autowired
     private SysOperLogService sysOperLogService;
@@ -69,6 +74,12 @@ public class OperationLogAspect {
             saveLog(joinPoint, operationLog, operator, ip, requestMethod, requestUri,
                     RESULT_SUCCESS, null, costMs);
             return result;
+        } catch (AuthorizationException e) {
+            // Shiro 鉴权失败：审计码与 API 返回码一致（403），异常原样上抛交由全局处理器响应
+            long costMs = (System.nanoTime() - startNanos) / 1_000_000;
+            saveLog(joinPoint, operationLog, operator, ip, requestMethod, requestUri,
+                    RESULT_FORBIDDEN, e.getMessage(), costMs);
+            throw e;
         } catch (Throwable e) {
             long costMs = (System.nanoTime() - startNanos) / 1_000_000;
             saveLog(joinPoint, operationLog, operator, ip, requestMethod, requestUri,

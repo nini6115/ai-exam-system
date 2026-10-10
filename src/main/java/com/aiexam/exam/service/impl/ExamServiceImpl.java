@@ -46,10 +46,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
 
     /** 每页最大条数 */
     private static final int MAX_PAGE_SIZE = 100;
-    /** 管理员角色编码 */
-    private static final String ADMIN_ROLE_CODE = "admin";
-    /** 教师角色编码 */
-    private static final String TEACHER_ROLE_CODE = "teacher";
     /** 学生角色编码 */
     private static final String STUDENT_ROLE_CODE = "student";
     /** 防作弊参数默认值（与表默认一致，DTO 未传时补齐） */
@@ -86,8 +82,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long publish(ExamPublishDTO dto) {
-        checkTeacherOrAdmin();
-
         // 试卷校验
         ExamPaper paper = examPaperMapper.selectById(dto.getPaperId());
         if (paper == null) {
@@ -172,7 +166,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
 
     @Override
     public PageVO<ExamVO> listExams(ExamQueryDTO dto) {
-        checkTeacherOrAdmin();
         Page<ExamVO> page = new Page<>(dto.getPageNum(),
                 Math.min(dto.getPageSize(), MAX_PAGE_SIZE));
         String name = (dto.getName() != null && !dto.getName().isEmpty()) ? dto.getName() : null;
@@ -181,7 +174,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
 
     @Override
     public PageVO<ExamHallVO> getMyExams(ExamHallQueryDTO dto) {
-        checkStudent();
         if (dto.getStatus() != null && (dto.getStatus() < STATUS_NOT_STARTED || dto.getStatus() > STATUS_FINISHED)) {
             throw new RuntimeException("状态筛选参数非法");
         }
@@ -202,7 +194,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
 
     @Override
     public ExamDetailVO getExamDetail(Long id) {
-        checkTeacherOrAdmin();
         Exam exam = getById(id);
         if (exam == null) {
             throw new RuntimeException("考试不存在");
@@ -237,31 +228,6 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
     }
 
     // ==================== 私有方法 ====================
-
-    /**
-     * 管理权限校验（粗粒度：当前登录用户须持有 admin 或 teacher 角色）
-     */
-    private void checkTeacherOrAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode())
-                        || TEACHER_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
-    }
-
-    /**
-     * 学生权限校验（粗粒度：当前登录用户须持有 student 角色）
-     */
-    private void checkStudent() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> STUDENT_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
-    }
 
     /**
      * 按当前时间推导考试展示状态：1未开始 2进行中 3已结束

@@ -22,8 +22,6 @@ import com.aiexam.exam.mapper.ExamMapper;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.question.entity.Question;
 import com.aiexam.question.mapper.QuestionMapper;
-import com.aiexam.system.entity.SysRole;
-import com.aiexam.system.mapper.SysRoleMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -49,10 +47,6 @@ import java.util.Set;
 @Service
 public class AiGradingServiceImpl implements AiGradingService {
 
-    /** 管理员角色编码 */
-    private static final String ADMIN_ROLE_CODE = "admin";
-    /** 教师角色编码 */
-    private static final String TEACHER_ROLE_CODE = "teacher";
     /** 答卷状态：1答题中（未交卷不能判分） */
     private static final int STATUS_ANSWERING = 1;
     /** 题型：5简答（主观题） */
@@ -87,16 +81,12 @@ public class AiGradingServiceImpl implements AiGradingService {
     private QuestionMapper questionMapper;
 
     @Autowired
-    private SysRoleMapper sysRoleMapper;
-
-    @Autowired
     private StringRedisTemplate redisTemplate;
 
     // ==================== 批量 AI 判卷 ====================
 
     @Override
     public GradeBatchResultVO gradeExam(Long examId) {
-        checkTeacherOrAdmin();
         requireExam(examId);
 
         List<PendingGradeItemVO> pending = aiGradingMapper.selectPendingGrades(examId);
@@ -218,7 +208,6 @@ public class AiGradingServiceImpl implements AiGradingService {
 
     @Override
     public List<GradeDetailVO> getSheetGradeDetails(Long examId, Long sheetId) {
-        checkTeacherOrAdmin();
         requireExam(examId);
         // 越权 sheetId（不属于本场考试）由 SQL 限定条件过滤为空列表
         return aiGradingMapper.selectSheetGradeDetails(examId, sheetId);
@@ -228,8 +217,6 @@ public class AiGradingServiceImpl implements AiGradingService {
 
     @Override
     public SheetScoreSummaryVO manualGrade(Long detailId, ManualGradeDTO dto) {
-        checkTeacherOrAdmin();
-
         AnswerDetail detail = answerDetailMapper.selectById(detailId);
         if (detail == null) {
             throw new RuntimeException("答题明细不存在");
@@ -283,18 +270,5 @@ public class AiGradingServiceImpl implements AiGradingService {
             return value;
         }
         return value.substring(0, maxLength);
-    }
-
-    /**
-     * 管理权限校验（粗粒度：当前登录用户须持有 admin 或 teacher 角色）
-     */
-    private void checkTeacherOrAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode())
-                        || TEACHER_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
     }
 }

@@ -1,6 +1,8 @@
 package com.aiexam.common.exception;
 
 import com.aiexam.common.AjaxResult;
+import org.apache.shiro.authz.AuthorizationException;
+import org.apache.shiro.authz.UnauthenticatedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +16,23 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * Shiro 鉴权失败（UnauthorizedException 是其子类）——规范错误码 403
+     */
+    @ExceptionHandler(AuthorizationException.class)
+    public AjaxResult<Void> handleAuthorizationException(AuthorizationException e) {
+        // 固定文案，不透出 Shiro 内部消息
+        return AjaxResult.error(403, "无权限访问");
+    }
+
+    /**
+     * Shiro 未认证（防御性：正常链路 401 已被 TokenInterceptor 前置拦截）
+     */
+    @ExceptionHandler(UnauthenticatedException.class)
+    public AjaxResult<Void> handleUnauthenticatedException(UnauthenticatedException e) {
+        return AjaxResult.error(401, "未登录或登录已过期");
+    }
 
     /**
      * 业务异常（RuntimeException 直接当业务异常用）

@@ -15,8 +15,6 @@ import com.aiexam.exam.mapper.ExamMapper;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.paper.entity.ExamPaper;
 import com.aiexam.paper.mapper.ExamPaperMapper;
-import com.aiexam.system.entity.SysRole;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -44,10 +42,6 @@ public class AnalysisServiceImpl implements AnalysisService {
 
     /** 每页最大条数 */
     private static final int MAX_PAGE_SIZE = 100;
-    /** 管理员角色编码 */
-    private static final String ADMIN_ROLE_CODE = "admin";
-    /** 教师角色编码 */
-    private static final String TEACHER_ROLE_CODE = "teacher";
     /** 答卷状态（仅已交卷态参与统计）：2已交卷 3强制交卷 4超时自动交卷 */
     private static final int STATUS_SUBMITTED = 2;
     private static final int STATUS_FORCED = 3;
@@ -78,14 +72,10 @@ public class AnalysisServiceImpl implements AnalysisService {
     @Autowired
     private ExamPaperMapper examPaperMapper;
 
-    @Autowired
-    private SysRoleMapper sysRoleMapper;
-
     // ==================== 统计概览 ====================
 
     @Override
     public ExamStatsVO getExamStats(Long examId) {
-        checkTeacherOrAdmin();
         Exam exam = requireExam(examId);
         // 惰性回填 is_passed（AI 判卷更新总分后再次查询自动重算，见 XML 注释）
         analysisMapper.fillIsPassed(examId);
@@ -142,7 +132,6 @@ public class AnalysisServiceImpl implements AnalysisService {
 
     @Override
     public PageVO<ScoreItemVO> getScorePage(Long examId, ScoreQueryDTO dto) {
-        checkTeacherOrAdmin();
         requireExam(examId);
         analysisMapper.fillIsPassed(examId);
         Page<ScoreItemVO> page = new Page<>(dto.getPageNum(),
@@ -155,7 +144,6 @@ public class AnalysisServiceImpl implements AnalysisService {
 
     @Override
     public ScoreExportVO exportScores(Long examId, String keyword) {
-        checkTeacherOrAdmin();
         Exam exam = requireExam(examId);
         analysisMapper.fillIsPassed(examId);
         // Page size=-1：MP 分页插件约定 size<0 不拼 LIMIT 且不执行 count，同一条 SQL 全量导出
@@ -252,18 +240,5 @@ public class AnalysisServiceImpl implements AnalysisService {
      */
     private String normalizeKeyword(String keyword) {
         return (keyword == null || keyword.isBlank()) ? null : keyword.trim();
-    }
-
-    /**
-     * 管理权限校验（粗粒度：当前登录用户须持有 admin 或 teacher 角色）
-     */
-    private void checkTeacherOrAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode())
-                        || TEACHER_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
     }
 }

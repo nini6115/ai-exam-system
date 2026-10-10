@@ -4,10 +4,8 @@ import com.aiexam.common.context.LoginUser;
 import com.aiexam.common.context.UserContext;
 import com.aiexam.system.entity.SysDictData;
 import com.aiexam.system.entity.SysDictType;
-import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.mapper.SysDictDataMapper;
 import com.aiexam.system.mapper.SysDictTypeMapper;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -41,7 +39,7 @@ import static org.mockito.Mockito.when;
 /**
  * 数据字典类型服务单元测试（Mockito，不依赖 MySQL/Redis）
  * <p>
- * 覆盖：权限、code 唯一、code 不可改、删除级联与缓存清理。
+ * 覆盖：code 唯一、code 不可改、删除级联与缓存清理（角色权限校验已迁移至 Controller）。
  */
 @ExtendWith(MockitoExtension.class)
 class SysDictTypeServiceImplTest {
@@ -55,9 +53,6 @@ class SysDictTypeServiceImplTest {
 
     @Mock
     private SysDictDataMapper sysDictDataMapper;
-
-    @Mock
-    private SysRoleMapper sysRoleMapper;
 
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -83,22 +78,8 @@ class SysDictTypeServiceImplTest {
     }
 
     @Test
-    @DisplayName("新增：非 admin 角色无权限")
-    void addType_notAdmin_throws() {
-        stubRole("teacher");
-        var dto = new com.aiexam.system.dto.DictTypeAddDTO();
-        dto.setDictName("题型");
-        dto.setDictCode(DICT_CODE);
-
-        assertThatThrownBy(() -> service.addType(dto))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-    }
-
-    @Test
     @DisplayName("新增：dict_code 重复应报错")
     void addType_duplicateCode_throws() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectCount(any(Wrapper.class))).thenReturn(1L);
         var dto = new com.aiexam.system.dto.DictTypeAddDTO();
         dto.setDictName("题型");
@@ -112,7 +93,6 @@ class SysDictTypeServiceImplTest {
     @Test
     @DisplayName("新增：成功返回新类型ID")
     void addType_success() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
         when(sysDictTypeMapper.insert(any(SysDictType.class))).thenAnswer(invocation -> {
             SysDictType type = invocation.getArgument(0);
@@ -131,7 +111,6 @@ class SysDictTypeServiceImplTest {
     @Test
     @DisplayName("修改：dict_code 与库中不一致应报错（code 不可修改）")
     void updateType_codeChanged_throws() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectById(TYPE_ID)).thenReturn(buildType(DICT_CODE));
         var dto = new com.aiexam.system.dto.DictTypeUpdateDTO();
         dto.setId(TYPE_ID);
@@ -146,7 +125,6 @@ class SysDictTypeServiceImplTest {
     @Test
     @DisplayName("修改：编码一致时正常更新")
     void updateType_success() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectById(TYPE_ID)).thenReturn(buildType(DICT_CODE));
         var dto = new com.aiexam.system.dto.DictTypeUpdateDTO();
         dto.setId(TYPE_ID);
@@ -165,7 +143,6 @@ class SysDictTypeServiceImplTest {
     @Test
     @DisplayName("删除：逻辑删类型 + 级联物理删字典数据 + 清缓存")
     void deleteType_cascadesDataAndEvictsCache() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectById(TYPE_ID)).thenReturn(buildType(DICT_CODE));
 
         service.deleteType(TYPE_ID);
@@ -178,18 +155,11 @@ class SysDictTypeServiceImplTest {
     @Test
     @DisplayName("删除：类型不存在应报错")
     void deleteType_missing_throws() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectById(TYPE_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> service.deleteType(TYPE_ID))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("字典类型不存在");
-    }
-
-    private void stubRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        when(sysRoleMapper.selectByUserId(ADMIN_ID)).thenReturn(List.of(role));
     }
 
     private SysDictType buildType(String code) {

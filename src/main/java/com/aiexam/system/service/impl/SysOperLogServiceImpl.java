@@ -1,12 +1,9 @@
 package com.aiexam.system.service.impl;
 
-import com.aiexam.common.context.UserContext;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.system.dto.OperLogQueryDTO;
 import com.aiexam.system.entity.SysOperLog;
-import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.mapper.SysOperLogMapper;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.aiexam.system.service.SysOperLogService;
 import com.aiexam.system.vo.OperLogVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -30,14 +27,9 @@ public class SysOperLogServiceImpl implements SysOperLogService {
 
     /** 每页最大条数 */
     private static final int MAX_PAGE_SIZE = 100;
-    /** 管理员角色编码 */
-    private static final String ADMIN_ROLE_CODE = "admin";
 
     @Autowired
     private SysOperLogMapper sysOperLogMapper;
-
-    @Autowired
-    private SysRoleMapper sysRoleMapper;
 
     @Async("operationLogExecutor")
     @Override
@@ -52,7 +44,6 @@ public class SysOperLogServiceImpl implements SysOperLogService {
 
     @Override
     public PageVO<OperLogVO> listOperLogs(OperLogQueryDTO dto) {
-        checkAdmin();
         Page<SysOperLog> page = new Page<>(dto.getPageNum(),
                 Math.min(dto.getPageSize(), MAX_PAGE_SIZE));
         LambdaQueryWrapper<SysOperLog> wrapper = new LambdaQueryWrapper<SysOperLog>()
@@ -68,17 +59,5 @@ public class SysOperLogServiceImpl implements SysOperLogService {
         Page<SysOperLog> result = sysOperLogMapper.selectPage(page, wrapper);
         List<OperLogVO> vos = result.getRecords().stream().map(OperLogVO::from).toList();
         return PageVO.of(page, vos);
-    }
-
-    /**
-     * 管理员权限校验（粗粒度：当前登录用户须持有 admin 角色）
-     */
-    private void checkAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
     }
 }

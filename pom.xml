@@ -22,6 +22,7 @@
         <java.version>17</java.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <flyway.version>10.10.0</flyway.version>
+        <shiro.version>2.0.2</shiro.version>
     </properties>
 
     <dependencies>
@@ -79,6 +80,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- Shiro 接口级鉴权（共存模式：登录仍由 TokenInterceptor 负责，纯 shiro-spring 零自动配置；
+             2.0.x 为 Jakarta 主线，1.x 是 javax 与 Boot 3 不兼容） -->
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-spring</artifactId>
+            <version>${shiro.version}</version>
         </dependency>
 
         <!-- BCrypt 密码加密 -->

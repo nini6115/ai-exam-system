@@ -7,8 +7,6 @@ import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.exam.vo.ExamHallVO;
 import com.aiexam.paper.mapper.ExamPaperMapper;
-import com.aiexam.system.entity.SysRole;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.aiexam.system.mapper.SysUserMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -33,7 +31,7 @@ import static org.mockito.Mockito.when;
 /**
  * 学生考试大厅单元测试（Mockito，不依赖 MySQL/Redis）
  * <p>
- * 覆盖：学生角色校验、状态参数校验、分数脱敏规则。
+ * 覆盖：状态参数校验、分数脱敏规则（角色权限校验已迁移至 Controller @RequiresRoles）。
  */
 @ExtendWith(MockitoExtension.class)
 class ExamServiceImplTest {
@@ -49,9 +47,6 @@ class ExamServiceImplTest {
     @Mock
     private SysUserMapper sysUserMapper;
 
-    @Mock
-    private SysRoleMapper sysRoleMapper;
-
     @InjectMocks
     private ExamServiceImpl service;
 
@@ -66,20 +61,8 @@ class ExamServiceImplTest {
     }
 
     @Test
-    @DisplayName("大厅：非学生角色无权限访问")
-    void getMyExams_notStudent_throws() {
-        when(sysRoleMapper.selectByUserId(USER_ID)).thenReturn(List.of(buildRole("teacher")));
-
-        assertThatThrownBy(() -> service.getMyExams(buildQuery(null)))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-    }
-
-    @Test
     @DisplayName("大厅：状态筛选参数非法应报错")
     void getMyExams_invalidStatus_throws() {
-        when(sysRoleMapper.selectByUserId(USER_ID)).thenReturn(List.of(buildRole("student")));
-
         assertThatThrownBy(() -> service.getMyExams(buildQuery(5)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("状态筛选参数非法");
@@ -88,7 +71,6 @@ class ExamServiceImplTest {
     @Test
     @DisplayName("大厅：分数脱敏——未进入/答题中/未开即显成绩时不返回分数")
     void getMyExams_scoresMaskedCorrectly() {
-        when(sysRoleMapper.selectByUserId(USER_ID)).thenReturn(List.of(buildRole("student")));
         List<ExamHallVO> records = List.of(
                 buildHallVO(null, 1, new BigDecimal("90")),  // 未进入过考试
                 buildHallVO(2, 1, new BigDecimal("88")),      // 已交卷 + 交卷即显 → 可见
@@ -122,12 +104,6 @@ class ExamServiceImplTest {
         ExamHallQueryDTO dto = new ExamHallQueryDTO();
         dto.setStatus(status);
         return dto;
-    }
-
-    private SysRole buildRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        return role;
     }
 
     private ExamHallVO buildHallVO(Integer sheetStatus, Integer showScoreAfter, BigDecimal bestScore) {

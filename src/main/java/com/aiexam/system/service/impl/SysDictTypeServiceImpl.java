@@ -7,10 +7,8 @@ import com.aiexam.system.dto.DictTypeQueryDTO;
 import com.aiexam.system.dto.DictTypeUpdateDTO;
 import com.aiexam.system.entity.SysDictData;
 import com.aiexam.system.entity.SysDictType;
-import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.mapper.SysDictDataMapper;
 import com.aiexam.system.mapper.SysDictTypeMapper;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.aiexam.system.service.SysDictTypeService;
 import com.aiexam.system.vo.DictTypeVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -36,8 +34,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
 
     /** 每页最大条数 */
     private static final int MAX_PAGE_SIZE = 100;
-    /** 管理员角色编码 */
-    private static final String ADMIN_ROLE_CODE = "admin";
     /** 字典项查询缓存 key 前缀（与 SysDictDataServiceImpl 保持一致） */
     private static final String DATA_CACHE_KEY_PREFIX = "dict:data:";
     /** 启用状态值 */
@@ -50,14 +46,10 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
     private SysDictDataMapper sysDictDataMapper;
 
     @Autowired
-    private SysRoleMapper sysRoleMapper;
-
-    @Autowired
     private StringRedisTemplate redisTemplate;
 
     @Override
     public PageVO<DictTypeVO> pageTypes(DictTypeQueryDTO dto) {
-        checkAdmin();
         Page<SysDictType> page = new Page<>(dto.getPageNum(),
                 Math.min(dto.getPageSize(), MAX_PAGE_SIZE));
         LambdaQueryWrapper<SysDictType> wrapper = new LambdaQueryWrapper<SysDictType>()
@@ -74,7 +66,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
 
     @Override
     public List<DictTypeVO> listAll() {
-        checkAdmin();
         return sysDictTypeMapper.selectList(new LambdaQueryWrapper<SysDictType>()
                         .orderByAsc(SysDictType::getId))
                 .stream().map(DictTypeVO::from).toList();
@@ -82,7 +73,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
 
     @Override
     public DictTypeVO getDetail(Long id) {
-        checkAdmin();
         SysDictType type = sysDictTypeMapper.selectById(id);
         if (type == null) {
             throw new RuntimeException("字典类型不存在");
@@ -92,7 +82,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
 
     @Override
     public Long addType(DictTypeAddDTO dto) {
-        checkAdmin();
         long count = sysDictTypeMapper.selectCount(new LambdaQueryWrapper<SysDictType>()
                 .eq(SysDictType::getDictCode, dto.getDictCode()));
         if (count > 0) {
@@ -110,7 +99,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
 
     @Override
     public void updateType(DictTypeUpdateDTO dto) {
-        checkAdmin();
         SysDictType existing = sysDictTypeMapper.selectById(dto.getId());
         if (existing == null) {
             throw new RuntimeException("字典类型不存在");
@@ -131,7 +119,6 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteType(Long id) {
-        checkAdmin();
         SysDictType existing = sysDictTypeMapper.selectById(id);
         if (existing == null) {
             throw new RuntimeException("字典类型不存在");
@@ -143,17 +130,5 @@ public class SysDictTypeServiceImpl implements SysDictTypeService {
         redisTemplate.delete(DATA_CACHE_KEY_PREFIX + existing.getDictCode());
         log.info("用户[{}]删除字典类型[{}({})]，已级联删除字典数据",
                 UserContext.getUsername(), existing.getDictName(), existing.getDictCode());
-    }
-
-    /**
-     * 管理员权限校验（粗粒度：当前登录用户须持有 admin 角色）
-     */
-    private void checkAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean allowed = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode()));
-        if (!allowed) {
-            throw new RuntimeException("无权限操作");
-        }
     }
 }

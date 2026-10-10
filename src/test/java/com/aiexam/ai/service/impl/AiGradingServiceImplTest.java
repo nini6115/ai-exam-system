@@ -21,8 +21,6 @@ import com.aiexam.exam.mapper.ExamMapper;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.question.entity.Question;
 import com.aiexam.question.mapper.QuestionMapper;
-import com.aiexam.system.entity.SysRole;
-import com.aiexam.system.mapper.SysRoleMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,9 +88,6 @@ class AiGradingServiceImplTest {
     private QuestionMapper questionMapper;
 
     @Mock
-    private SysRoleMapper sysRoleMapper;
-
-    @Mock
     private StringRedisTemplate redisTemplate;
 
     @InjectMocks
@@ -111,24 +106,11 @@ class AiGradingServiceImplTest {
         UserContext.clear();
     }
 
-    // ==================== 权限与前置校验 ====================
-
-    @Test
-    @DisplayName("批量判卷：学生角色无权限，不查待判清单")
-    void gradeExam_studentRole_throws() {
-        UserContext.set(new LoginUser(100L, "student01", "张三"));
-        when(sysRoleMapper.selectByUserId(100L)).thenReturn(List.of(buildRole("student")));
-
-        assertThatThrownBy(() -> service.gradeExam(EXAM_ID))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-        verify(aiGradingMapper, never()).selectPendingGrades(any());
-    }
+    // ==================== 前置校验 ====================
 
     @Test
     @DisplayName("批量判卷：考试不存在应报错")
     void gradeExam_examNotFound_throws() {
-        stubRole("teacher");
         when(examMapper.selectById(EXAM_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> service.gradeExam(EXAM_ID))
@@ -139,7 +121,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("批量判卷：防重锁被占用应报错，不调大模型不释放他人锁")
     void gradeExam_lockTaken_throws() {
-        stubRole("teacher");
         when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
         when(aiGradingMapper.selectPendingGrades(EXAM_ID)).thenReturn(List.of(buildPending()));
         when(lock()).thenReturn(false);
@@ -155,7 +136,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("批量判卷：无待判明细直接返回 0/0/0，不调大模型不汇总")
     void gradeExam_noPending_noop() {
-        stubRole("teacher");
         when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
         when(aiGradingMapper.selectPendingGrades(EXAM_ID)).thenReturn(List.of());
 
@@ -334,7 +314,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：明细不存在应报错")
     void manualGrade_detailMissing_throws() {
-        stubRole("teacher");
         when(answerDetailMapper.selectById(DETAIL_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> service.manualGrade(DETAIL_ID, buildManualDTO(new BigDecimal("8"))))
@@ -345,7 +324,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：答卷未交卷不能判分")
     void manualGrade_sheetAnswering_throws() {
-        stubRole("teacher");
         when(answerDetailMapper.selectById(DETAIL_ID)).thenReturn(buildDetail());
         AnswerSheet sheet = buildSheet();
         sheet.setStatus(1);
@@ -359,7 +337,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：客观题不支持")
     void manualGrade_objectiveQuestion_throws() {
-        stubRole("teacher");
         when(answerDetailMapper.selectById(DETAIL_ID)).thenReturn(buildDetail());
         when(answerSheetMapper.selectById(SHEET_ID)).thenReturn(buildSheet());
         Question question = buildQuestion();
@@ -374,7 +351,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：负分与超满分应报错且不落库")
     void manualGrade_invalidScore_throws() {
-        stubRole("teacher");
         when(answerDetailMapper.selectById(DETAIL_ID)).thenReturn(buildDetail());
         when(answerSheetMapper.selectById(SHEET_ID)).thenReturn(buildSheet());
         when(questionMapper.selectById(201L)).thenReturn(buildQuestion());
@@ -391,7 +367,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：成功带评语，判分人为当前教师，返回整卷汇总")
     void manualGrade_success_withComment() {
-        stubRole("teacher");
         stubManualChain();
         when(aiGradingMapper.markManualGraded(any(), any(), anyInt(), any(), any(), any())).thenReturn(1);
 
@@ -410,7 +385,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：不传评语时保留原评语（comment=null）")
     void manualGrade_success_withoutComment() {
-        stubRole("teacher");
         stubManualChain();
         when(aiGradingMapper.markManualGraded(any(), any(), anyInt(), any(), any(), any())).thenReturn(1);
 
@@ -425,7 +399,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("人工改分：整卷仍有待判主观题时返回未定稿汇总（subjectiveScore=null）")
     void manualGrade_incompleteSheet_fallbackVO() {
-        stubRole("teacher");
         stubManualChain();
         when(aiGradingMapper.markManualGraded(any(), any(), anyInt(), any(), any(), any())).thenReturn(1);
         stubIncompleteSummary();
@@ -443,7 +416,6 @@ class AiGradingServiceImplTest {
     @Test
     @DisplayName("复核视图：逐题详情原样透传（null 字段不报错）")
     void sheetDetails_passthrough() {
-        stubRole("teacher");
         when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
         GradeDetailVO row = new GradeDetailVO();
         row.setDetailId(DETAIL_ID);
@@ -458,15 +430,8 @@ class AiGradingServiceImplTest {
     }
 
     @Test
-    @DisplayName("复核视图：学生角色与考试不存在分别报错")
-    void sheetDetails_guards() {
-        UserContext.set(new LoginUser(100L, "student01", "张三"));
-        when(sysRoleMapper.selectByUserId(100L)).thenReturn(List.of(buildRole("student")));
-        assertThatThrownBy(() -> service.getSheetGradeDetails(EXAM_ID, SHEET_ID))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-
-        stubRole("teacher");
+    @DisplayName("复核视图：考试不存在应报错")
+    void sheetDetails_examNotFound_throws() {
         when(examMapper.selectById(EXAM_ID)).thenReturn(null);
         assertThatThrownBy(() -> service.getSheetGradeDetails(EXAM_ID, SHEET_ID))
                 .isInstanceOf(RuntimeException.class)
@@ -476,20 +441,7 @@ class AiGradingServiceImplTest {
 
     // ==================== 测试数据 ====================
 
-    private void stubRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        when(sysRoleMapper.selectByUserId(UserContext.getUserId())).thenReturn(List.of(role));
-    }
-
-    private SysRole buildRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        return role;
-    }
-
     private void stubTeacherAndExamWithLock() {
-        stubRole("teacher");
         when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
         // lenient：无待判明细场景不会走到拿锁
         lenient().when(lock()).thenReturn(true);

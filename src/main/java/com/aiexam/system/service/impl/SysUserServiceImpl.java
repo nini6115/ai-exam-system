@@ -144,7 +144,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public PageVO<UserVO> listUsers(UserQueryDTO dto) {
-        checkAdmin();
         Page<SysUser> page = new Page<>(dto.getPageNum(), Math.min(dto.getPageSize(), MAX_PAGE_SIZE));
         sysUserMapper.selectUserPage(page, dto);
         fillRoles(page.getRecords());
@@ -154,7 +153,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public UserVO getUserDetail(Long id) {
-        checkAdmin();
         SysUser user = getById(id);
         if (user == null) {
             throw new RuntimeException("用户不存在");
@@ -166,7 +164,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long addUser(UserAddDTO dto) {
-        checkAdmin();
 
         // 用户名唯一性校验
         long count = lambdaQuery().eq(SysUser::getUsername, dto.getUsername()).count();
@@ -198,7 +195,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateUser(UserUpdateDTO dto) {
-        checkAdmin();
         SysUser exists = getById(dto.getId());
         if (exists == null) {
             throw new RuntimeException("用户不存在");
@@ -234,7 +230,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long id) {
-        checkAdmin();
         if (id == SUPER_ADMIN_ID) {
             throw new RuntimeException("超级管理员不能删除");
         }
@@ -254,7 +249,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public void resetPassword(ResetPasswordDTO dto) {
-        checkAdmin();
         SysUser exists = getById(dto.getUserId());
         if (exists == null) {
             throw new RuntimeException("用户不存在");
@@ -271,7 +265,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public void updateStatus(UpdateStatusDTO dto) {
-        checkAdmin();
         if (dto.getStatus() != 0 && dto.getStatus() != 1) {
             throw new RuntimeException("status只能为0或1");
         }
@@ -301,7 +294,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void assignRole(AssignRoleDTO dto) {
-        checkAdmin();
         SysUser exists = getById(dto.getUserId());
         if (exists == null) {
             throw new RuntimeException("用户不存在");
@@ -415,17 +407,5 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         Map<Long, List<SysRole>> roleMap = sysRoleMapper.selectByUserIds(userIds).stream()
                 .collect(Collectors.groupingBy(SysRole::getUserId));
         users.forEach(u -> u.setRoles(roleMap.getOrDefault(u.getId(), Collections.emptyList())));
-    }
-
-    /**
-     * 管理权限校验（粗粒度：当前登录用户须持有 admin 角色）
-     */
-    private void checkAdmin() {
-        Long userId = UserContext.getUserId();
-        boolean admin = userId != null && sysRoleMapper.selectByUserId(userId).stream()
-                .anyMatch(r -> ADMIN_ROLE_CODE.equals(r.getRoleCode()));
-        if (!admin) {
-            throw new RuntimeException("无权限操作");
-        }
     }
 }

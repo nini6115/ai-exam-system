@@ -2,6 +2,7 @@ package com.aiexam.exam.controller;
 
 import com.aiexam.common.AjaxResult;
 import com.aiexam.common.annotation.OperationLog;
+import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.utils.IpUtil;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.exam.dto.AnswerSaveDTO;
@@ -18,6 +19,8 @@ import com.aiexam.exam.vo.ExamStartVO;
 import com.aiexam.exam.vo.ExamVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.apache.shiro.authz.annotation.Logical;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +46,7 @@ public class ExamController {
      * 发布考试：选择试卷、设置时间/时长/防作弊参数、指定考生
      */
     @PostMapping("/publish")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     @OperationLog(module = "考试管理", action = "发布考试")
     public AjaxResult<Long> publish(@Valid @RequestBody ExamPublishDTO dto) {
         return AjaxResult.success(examService.publish(dto));
@@ -52,6 +56,7 @@ public class ExamController {
      * 分页查询考试列表（教师端）
      */
     @GetMapping("/list")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     public AjaxResult<PageVO<ExamVO>> list(ExamQueryDTO dto) {
         return AjaxResult.success(examService.listExams(dto));
     }
@@ -60,6 +65,7 @@ public class ExamController {
      * 考试详情（含试卷摘要与学生列表）
      */
     @GetMapping("/{id}")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
     public AjaxResult<ExamDetailVO> detail(@PathVariable Long id) {
         return AjaxResult.success(examService.getExamDetail(id));
     }
@@ -95,6 +101,7 @@ public class ExamController {
      * 学生考试大厅：我被安排的考试列表（支持状态筛选），状态按时间实时推导
      */
     @GetMapping("/my/list")
+    @RequiresRoles(RoleConstants.STUDENT)
     public AjaxResult<PageVO<ExamHallVO>> myList(ExamHallQueryDTO dto) {
         return AjaxResult.success(examService.getMyExams(dto));
     }

@@ -2,6 +2,7 @@ package com.aiexam.system.controller;
 
 import com.aiexam.common.AjaxResult;
 import com.aiexam.common.annotation.OperationLog;
+import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.system.dto.DictTypeAddDTO;
 import com.aiexam.system.dto.DictTypeQueryDTO;
@@ -9,6 +10,7 @@ import com.aiexam.system.dto.DictTypeUpdateDTO;
 import com.aiexam.system.service.SysDictTypeService;
 import com.aiexam.system.vo.DictTypeVO;
 import jakarta.validation.Valid;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +37,7 @@ public class DictTypeController {
      * 字典类型分页查询（名称/编码模糊 + 状态）
      */
     @GetMapping("/page")
+    @RequiresRoles(RoleConstants.ADMIN)
     public AjaxResult<PageVO<DictTypeVO>> page(DictTypeQueryDTO dto) {
         return AjaxResult.success(sysDictTypeService.pageTypes(dto));
     }
@@ -43,6 +46,7 @@ public class DictTypeController {
      * 全量字典类型（类型下拉用）
      */
     @GetMapping("/list")
+    @RequiresRoles(RoleConstants.ADMIN)
     public AjaxResult<List<DictTypeVO>> list() {
         return AjaxResult.success(sysDictTypeService.listAll());
     }
@@ -51,6 +55,7 @@ public class DictTypeController {
      * 字典类型详情
      */
     @GetMapping("/{id}")
+    @RequiresRoles(RoleConstants.ADMIN)
     public AjaxResult<DictTypeVO> detail(@PathVariable Long id) {
         return AjaxResult.success(sysDictTypeService.getDetail(id));
     }
@@ -59,6 +64,7 @@ public class DictTypeController {
      * 新增字典类型（编码唯一）
      */
     @PostMapping
+    @RequiresRoles(RoleConstants.ADMIN)
     @OperationLog(module = "字典管理", action = "新增字典类型")
     public AjaxResult<Long> add(@Valid @RequestBody DictTypeAddDTO dto) {
         return AjaxResult.success(sysDictTypeService.addType(dto));
@@ -68,6 +74,7 @@ public class DictTypeController {
      * 修改字典类型（编码不可修改）
      */
     @PutMapping
+    @RequiresRoles(RoleConstants.ADMIN)
     @OperationLog(module = "字典管理", action = "修改字典类型")
     public AjaxResult<Void> update(@Valid @RequestBody DictTypeUpdateDTO dto) {
         sysDictTypeService.updateType(dto);
@@ -78,6 +85,7 @@ public class DictTypeController {
      * 删除字典类型（级联删除其下字典数据）
      */
     @DeleteMapping("/{id}")
+    @RequiresRoles(RoleConstants.ADMIN)
     @OperationLog(module = "字典管理", action = "删除字典类型")
     public AjaxResult<Void> delete(@PathVariable Long id) {
         sysDictTypeService.deleteType(id);

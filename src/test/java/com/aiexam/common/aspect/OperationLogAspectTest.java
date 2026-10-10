@@ -5,6 +5,7 @@ import com.aiexam.common.context.LoginUser;
 import com.aiexam.common.context.UserContext;
 import com.aiexam.system.entity.SysOperLog;
 import com.aiexam.system.service.SysOperLogService;
+import org.apache.shiro.authz.UnauthorizedException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -156,6 +157,22 @@ class OperationLogAspectTest {
         ArgumentCaptor<SysOperLog> captor = ArgumentCaptor.forClass(SysOperLog.class);
         verify(sysOperLogService).saveAsync(captor.capture());
         assertThat(captor.getValue().getErrorMsg()).hasSize(500);
+    }
+
+    @Test
+    @DisplayName("鉴权失败路径：记录 403，异常原样上抛")
+    void around_unauthorized_logs403AndRethrows() throws Throwable {
+        ProceedingJoinPoint joinPoint = joinPoint(new String[0], new Object[0], null);
+        when(joinPoint.proceed()).thenThrow(new UnauthorizedException("Subject does not have role [admin]"));
+        OperationLog operationLog = annotation(true);
+
+        assertThatThrownBy(() -> aspect.around(joinPoint, operationLog))
+                .isInstanceOf(UnauthorizedException.class);
+
+        ArgumentCaptor<SysOperLog> captor = ArgumentCaptor.forClass(SysOperLog.class);
+        verify(sysOperLogService).saveAsync(captor.capture());
+        assertThat(captor.getValue().getResultCode()).isEqualTo(403);
+        assertThat(captor.getValue().getErrorMsg()).contains("admin");
     }
 
     // ==================== 测试数据 ====================

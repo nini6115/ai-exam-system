@@ -4,10 +4,8 @@ import com.aiexam.common.context.LoginUser;
 import com.aiexam.common.context.UserContext;
 import com.aiexam.system.entity.SysDictData;
 import com.aiexam.system.entity.SysDictType;
-import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.mapper.SysDictDataMapper;
 import com.aiexam.system.mapper.SysDictTypeMapper;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.aiexam.system.vo.DictDataVO;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -60,9 +58,6 @@ class SysDictDataServiceImplTest {
 
     @Mock
     private SysDictTypeMapper sysDictTypeMapper;
-
-    @Mock
-    private SysRoleMapper sysRoleMapper;
 
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -155,7 +150,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("新增：类型不存在应报错")
     void addData_typeMissing_throws() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectOne(any(Wrapper.class))).thenReturn(null);
 
         assertThatThrownBy(() -> service.addData(buildAddDTO()))
@@ -166,7 +160,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("新增：类型停用应报错")
     void addData_typeDisabled_throws() {
-        stubRole("admin");
         SysDictType type = buildType();
         type.setStatus(0);
         when(sysDictTypeMapper.selectOne(any(Wrapper.class))).thenReturn(type);
@@ -179,7 +172,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("新增：同类型下 value 重复应报错")
     void addData_duplicateValue_throws() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectOne(any(Wrapper.class))).thenReturn(buildType());
         when(sysDictDataMapper.selectCount(any(Wrapper.class))).thenReturn(1L);
 
@@ -191,7 +183,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("新增：成功落库并清缓存")
     void addData_success() {
-        stubRole("admin");
         when(sysDictTypeMapper.selectOne(any(Wrapper.class))).thenReturn(buildType());
         when(sysDictDataMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
         doAnswer(invocation -> {
@@ -211,7 +202,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("修改：value 与同类型其他项冲突应报错")
     void updateData_duplicateValue_throws() {
-        stubRole("admin");
         when(sysDictDataMapper.selectById(DATA_ID)).thenReturn(buildData());
         when(sysDictDataMapper.selectCount(any(Wrapper.class))).thenReturn(1L);
 
@@ -223,7 +213,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("修改：成功更新并清缓存")
     void updateData_success() {
-        stubRole("admin");
         when(sysDictDataMapper.selectById(DATA_ID)).thenReturn(buildData());
         when(sysDictDataMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
 
@@ -236,7 +225,6 @@ class SysDictDataServiceImplTest {
     @Test
     @DisplayName("删除：物理删除并清缓存")
     void deleteData_success() {
-        stubRole("admin");
         when(sysDictDataMapper.selectById(DATA_ID)).thenReturn(buildData());
 
         service.deleteData(DATA_ID);
@@ -246,12 +234,6 @@ class SysDictDataServiceImplTest {
     }
 
     // ==================== 测试数据 ====================
-
-    private void stubRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        when(sysRoleMapper.selectByUserId(ADMIN_ID)).thenReturn(List.of(role));
-    }
 
     private SysDictType buildType() {
         SysDictType type = new SysDictType();

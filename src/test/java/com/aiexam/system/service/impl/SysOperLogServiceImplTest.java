@@ -3,9 +3,7 @@ package com.aiexam.system.service.impl;
 import com.aiexam.common.context.LoginUser;
 import com.aiexam.common.context.UserContext;
 import com.aiexam.system.entity.SysOperLog;
-import com.aiexam.system.entity.SysRole;
 import com.aiexam.system.mapper.SysOperLogMapper;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -42,9 +40,6 @@ class SysOperLogServiceImplTest {
     @Mock
     private SysOperLogMapper sysOperLogMapper;
 
-    @Mock
-    private SysRoleMapper sysRoleMapper;
-
     @InjectMocks
     private SysOperLogServiceImpl service;
 
@@ -65,19 +60,8 @@ class SysOperLogServiceImplTest {
     }
 
     @Test
-    @DisplayName("查询：非 admin 角色无权限")
-    void listOperLogs_notAdmin_throws() {
-        stubRole("teacher");
-
-        assertThatThrownBy(() -> service.listOperLogs(new com.aiexam.system.dto.OperLogQueryDTO()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-    }
-
-    @Test
     @DisplayName("查询：pageSize 钳制到 100 并正常分页")
     void listOperLogs_pageSizeClamped() {
-        stubRole("admin");
         when(sysOperLogMapper.selectPage(any(Page.class), any(Wrapper.class)))
                 .thenAnswer(invocation -> {
                     Page<SysOperLog> page = invocation.getArgument(0);
@@ -107,12 +91,6 @@ class SysOperLogServiceImplTest {
 
         // 未抛异常即通过（@Async void 语义：异常吞掉仅记日志）
         verify(sysOperLogMapper).insert(any(SysOperLog.class));
-    }
-
-    private void stubRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        when(sysRoleMapper.selectByUserId(ADMIN_ID)).thenReturn(List.of(role));
     }
 
     private SysOperLog buildLog() {

@@ -15,8 +15,6 @@ import com.aiexam.exam.mapper.ExamMapper;
 import com.aiexam.exam.mapper.ExamUserMapper;
 import com.aiexam.paper.entity.ExamPaper;
 import com.aiexam.paper.mapper.ExamPaperMapper;
-import com.aiexam.system.entity.SysRole;
-import com.aiexam.system.mapper.SysRoleMapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -75,9 +73,6 @@ class AnalysisServiceImplTest {
     @Mock
     private ExamPaperMapper examPaperMapper;
 
-    @Mock
-    private SysRoleMapper sysRoleMapper;
-
     @InjectMocks
     private AnalysisServiceImpl service;
 
@@ -98,23 +93,11 @@ class AnalysisServiceImplTest {
         UserContext.clear();
     }
 
-    // ==================== 权限与参数 ====================
-
-    @Test
-    @DisplayName("统计：学生角色无权限，且不触发 is_passed 回填")
-    void stats_studentRole_throws() {
-        when(sysRoleMapper.selectByUserId(TEACHER_ID)).thenReturn(List.of(buildRole("student")));
-
-        assertThatThrownBy(() -> service.getExamStats(EXAM_ID))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("无权限操作");
-        verify(analysisMapper, never()).fillIsPassed(any());
-    }
+    // ==================== 参数与统计 ====================
 
     @Test
     @DisplayName("统计：考试不存在应报错")
     void stats_examNotFound_throws() {
-        when(sysRoleMapper.selectByUserId(TEACHER_ID)).thenReturn(List.of(buildRole("teacher")));
         when(examMapper.selectById(EXAM_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> service.getExamStats(EXAM_ID))
@@ -336,7 +319,6 @@ class AnalysisServiceImplTest {
     @Test
     @DisplayName("导出：文件名清理非法字符，考试名为空时兜底")
     void export_fileNameSanitized() {
-        when(sysRoleMapper.selectByUserId(TEACHER_ID)).thenReturn(List.of(buildRole("teacher")));
         Exam exam = buildExam();
         exam.setName("期中/考试:2024*");
         when(examMapper.selectById(EXAM_ID)).thenReturn(exam);
@@ -358,7 +340,6 @@ class AnalysisServiceImplTest {
     // ==================== 测试数据 ====================
 
     private void stubTeacherAndExam() {
-        when(sysRoleMapper.selectByUserId(TEACHER_ID)).thenReturn(List.of(buildRole("teacher")));
         when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
     }
 
@@ -377,12 +358,6 @@ class AnalysisServiceImplTest {
         page.setRecords(rows);
         page.setTotal(rows.size());
         return page;
-    }
-
-    private SysRole buildRole(String roleCode) {
-        SysRole role = new SysRole();
-        role.setRoleCode(roleCode);
-        return role;
     }
 
     private Exam buildExam() {

@@ -35,4 +35,21 @@
         </foreach>
     </select>
 
+    <!-- 角色下已分配用户数（删角色守卫） -->
+    <select id="countUsersByRoleId" resultType="long">
+        SELECT COUNT(*)
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <!-- 角色下用户分页：join 用户表（逻辑删过滤） -->
+    <select id="selectUsersByRoleId" resultType="com.aiexam.system.entity.SysUser">
+        SELECT u.id, u.username, u.real_name, u.user_no, u.gender, u.phone, u.email,
+               u.avatar, u.status, u.create_time
+        FROM sys_user_role ur
+        JOIN sys_user u ON u.id = ur.user_id AND u.deleted = 0
+        WHERE ur.role_id = #{roleId}
+        ORDER BY u.id DESC
+    </select>
+
 </mapper>
