@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiexam.analysis.mapper.AnalysisMapper">
+
+    <!-- 统计口径：每位考生取「最新一张已交卷答卷」：status IN (2,3,4) 中 MAX(id)。
+         与 ExamUserMapper.selectMyExamPage 取最新答卷的写法一致；
+         max_attempts>1 时天然取最后一次已交卷结果，为多次考试预留 -->
+    <sql id="latestSubmittedSheets">
+        SELECT MAX(x.id) AS latest_id
+        FROM answer_sheet x
+        WHERE x.exam_id = #{examId}
+          AND x.status IN (2, 3, 4)
+        GROUP BY x.user_id
+    </sql>
+
+    <resultMap id="ScoreSummaryResult" type="com.aiexam.analysis.vo.ExamStatsVO">
+        <result property="attendedCount" column="attended_count"/>
+        <result property="passedCount"  column="passed_count"/>
+        <result property="avgScore"     column="avg_score"/>
+        <result property="maxScore"     column="max_score"/>
+        <result property="minScore"     column="min_score"/>
+    </resultMap>
+
+    <resultMap id="ScoreSegmentResult" type="com.aiexam.analysis.vo.ScoreSegmentVO">
+        <result property="level"        column="level"/>
+        <result property="studentCount" column="student_count"/>
+    </resultMap>
+
+    <resultMap id="ScoreItemVOResult" type="com.aiexam.analysis.vo.ScoreItemVO">
+        <result property="userId"            column="user_id"/>
+        <result property="realName"          column="real_name"/>
+        <result property="userNo"            column="user_no"/>
+        <result property="sheetStatus"       column="sheet_status"/>
+        <result property="submitTime"        column="submit_time"/>
+        <result property="objectiveScore"    column="objective_score"/>
+        <result property="totalScore"        column="total_score"/>
+        <result property="isPassed"          column="is_passed"/>
+        <result property="screenSwitchCount" column="screen_switch_count"/>
+    </resultMap>
+
+    <!-- 统计汇总：参考人数、及格人数（按及格分动态判定，与 is_passed 回填同口径）、均分极值。
+         无 JOIN 条件命中时返回单行：COUNT=0、聚合列为 NULL -->
+    <select id="selectScoreSummary" resultMap="ScoreSummaryResult">
+        SELECT COUNT(*)                                                       AS attended_count,
+               SUM(CASE WHEN s.total_score &gt;= p.pass_score THEN 1 ELSE 0 END) AS passed_count,
+               AVG(s.total_score)                                             AS avg_score,
+               MAX(s.total_score)                                             AS max_score,
+               MIN(s.total_score)                                             AS min_score
+        FROM answer_sheet s
+        JOIN exam_paper p ON p.id = s.paper_id
+        JOIN (<include refid="latestSubmittedSheets"/>) t ON t.latest_id = s.id
+    </select>
+
+    <!-- 分数段分布：按得分率（总分/卷面总分）分5段。
+         DECIMAL 除法无浮点误差（MySQL div_precision_increment 默认4，85.00/100.00=0.8500），
+         GROUP BY level 为 MySQL 别名分组，只返回非空段，Java 侧补 0 -->
+    <select id="selectScoreSegments" resultMap="ScoreSegmentResult">
+        SELECT CASE WHEN s.total_score / p.total_score &gt;= 0.9 THEN 1
+                    WHEN s.total_score / p.total_score &gt;= 0.8 THEN 2
+                    WHEN s.total_score / p.total_score &gt;= 0.7 THEN 3
+                    WHEN s.total_score / p.total_score &gt;= 0.6 THEN 4
+                    ELSE 5 END AS level,
+               COUNT(*)        AS student_count
+        FROM answer_sheet s
+        JOIN exam_paper p ON p.id = s.paper_id
+        JOIN (<include refid="latestSubmittedSheets"/>) t ON t.latest_id = s.id
+        GROUP BY level
+        ORDER BY level
+    </select>
+
+    <!-- 成绩明细：exam_user 全名单 JOIN 用户表取姓名学号，LEFT JOIN 最新已交卷答卷
+         （口径与统计一致：只认已交卷答卷，答题中视为未考） -->
+    <select id="selectScorePage" resultMap="ScoreItemVOResult">
+        SELECT eu.user_id,
+               u.real_name,
+               u.user_no,
+               s.status               AS sheet_status,
+               s.submit_time,
+               s.objective_score,
+               s.total_score,
+               s.is_passed,
+               s.screen_switch_count
+        FROM exam_user eu
+        JOIN sys_user u ON u.id = eu.user_id AND u.deleted = 0
+        LEFT JOIN answer_sheet s ON s.id = (
+            SELECT MAX(x.id) FROM answer_sheet x
+            WHERE x.exam_id = eu.exam_id
+              AND x.user_id = eu.user_id
+              AND x.status IN (2, 3, 4)
+        )
+        WHERE eu.exam_id = #{examId}
+        <if test="keyword != null">
+            AND (u.real_name LIKE CONCAT('%', #{keyword}, '%')
+              OR u.user_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY u.user_no ASC, eu.id ASC
+    </select>
+
+    <!-- is_passed 惰性回填：仅已交卷答卷，total_score >= 试卷及格分 → 1 否则 0。
+         交卷时只回填客观分；AI 判卷更新主观分并回写 total_score 后，
+         下一次进入统计/明细会再次执行本 UPDATE 自动重算，无需触发器。
+         total_score IS NOT NULL 守卫：NULL 参与比较结果为 NULL，会落进 ELSE 被误标为 0 -->
+    <update id="fillIsPassed">
+        UPDATE answer_sheet s
+            JOIN exam_paper p ON p.id = s.paper_id
+        SET s.is_passed = CASE WHEN s.total_score &gt;= p.pass_score THEN 1 ELSE 0 END
+        WHERE s.exam_id = #{examId}
+          AND s.status IN (2, 3, 4)
+          AND s.total_score IS NOT NULL
+    </update>
+</mapper>
