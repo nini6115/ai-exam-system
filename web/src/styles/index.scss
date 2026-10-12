@@ -1,0 +1,55 @@
+// 全局样式：重置 + 通用工具类（主题微调通过覆盖 Element Plus CSS 变量）
+@use './variables.scss' as vars;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+// ---------- 通用工具类 ----------
+
+// 查询区 + 表格 + 分页的标准页面容器
+.page-card {
+  .page-card__search {
+    margin-bottom: 12px;
+
+    .el-form-item {
+      margin-bottom: 0;
+      margin-right: 12px;
+    }
+  }
+
+  .page-card__footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+}
+
+// 表格内操作按钮间距
+.table-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+// 文本截断（表格长文本列配合 show-overflow-tooltip 使用场景外的手写截断）
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,46 @@
+# ============================================================
+# 配置模板（无密码，提交进仓库）
+# 使用方法：复制本文件为 application.yml，填入真实密码即可。
+# application.yml 已被 .gitignore 排除，不会被提交。
+# ============================================================
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 库名 ai_exam 需先手动创建：CREATE DATABASE ai_exam DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    url: jdbc:mysql://localhost:3306/ai_exam?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 你的MySQL密码
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # 没设密码就注释掉下面这行
+      # password: 你的Redis密码
+      database: 0
+  quartz:
+    job-store-type: memory
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # 开发期打印 SQL，生产环境删掉下面这行
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+ai:
+  grading:
+    # true=模拟判分（无需 API Key，按答案重合度给分）；接真实大模型时改 false
+    mock: true
+    # 以下均有默认值，仅接真实大模型时需要配置
+    # base-url: https://open.bigmodel.cn/api/paas/v4
+    # api-key: 你的API Key
+    # model: glm-4-flash
