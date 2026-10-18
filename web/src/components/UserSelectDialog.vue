@@ -1,14 +1,14 @@
 <script setup>
 /**
  * 学生选择弹窗（发布考试用）：分页 + 关键字过滤，多选回显
- * 数据源 /user/list（roleCode=student）
+ * 数据源 /user/students（教师/管理员可用，服务端锁定学生角色）
  */
 import { ref } from 'vue'
-import { listUsers } from '@/api/user'
+import { listStudents } from '@/api/user'
 import { usePagination } from '@/hooks/usePagination'
 
 const visible = ref(false)
-const p = usePagination(listUsers, { username: '', realName: '', status: 1, roleCode: 'student' })
+const p = usePagination(listStudents, { username: '', realName: '', status: 1 })
 
 // 已选学生：{ userId, realName, userNo, username }
 const selected = ref([])

@@ -1,7 +1,6 @@
 package com.aiexam.system.controller;
 
 import com.aiexam.common.AjaxResult;
-import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.system.dto.RoleAddDTO;
@@ -66,7 +65,6 @@ public class SysRoleController {
      */
     @PostMapping
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "角色管理", action = "新增角色")
     public AjaxResult<Long> add(@Valid @RequestBody RoleAddDTO dto) {
         return AjaxResult.success(sysRoleService.addRole(dto));
     }
@@ -76,7 +74,6 @@ public class SysRoleController {
      */
     @PutMapping
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "角色管理", action = "修改角色")
     public AjaxResult<Void> update(@Valid @RequestBody RoleUpdateDTO dto) {
         sysRoleService.updateRole(dto);
         return AjaxResult.success();
@@ -87,7 +84,6 @@ public class SysRoleController {
      */
     @DeleteMapping("/{id}")
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "角色管理", action = "删除角色")
     public AjaxResult<Void> delete(@PathVariable Long id) {
         sysRoleService.deleteRole(id);
         return AjaxResult.success();

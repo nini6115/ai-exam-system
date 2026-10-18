@@ -59,8 +59,6 @@ export const menus = [
     children: [
       { path: '/system/users', title: '用户管理' },
       { path: '/system/roles', title: '角色管理' },
-      { path: '/system/dicts', title: '字典管理' },
-      { path: '/system/logs', title: '操作日志' },
     ],
   },
 ]

@@ -7,9 +7,9 @@ defineOptions({ name: 'Analysis' })
 
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getStats, listScores, exportScores } from '@/api/analysis'
-import { listExams } from '@/api/exam'
+import { listExams, publishScore } from '@/api/exam'
 import { usePagination } from '@/hooks/usePagination'
 import { downloadBlobResponse } from '@/utils/download'
 import { SHEET_STATUS, SHEET_STATUS_TAG } from '@/constants'
@@ -22,6 +22,23 @@ const exams = ref([])
 const examId = ref(null)
 const stats = ref(null)
 const exporting = ref(false)
+const publishing = ref(false)
+
+/** 发布成绩：交卷学生的成绩对学生端可见（幂等，重复点击安全） */
+async function doPublishScore() {
+  await ElMessageBox.confirm(
+    '发布后本场考试已交卷学生的成绩将对学生端可见，确认发布？',
+    '发布成绩',
+    { type: 'warning', confirmButtonText: '发布' },
+  )
+  publishing.value = true
+  try {
+    await publishScore(examId.value)
+    ElMessage.success('成绩已发布，学生端可见')
+  } finally {
+    publishing.value = false
+  }
+}
 
 const scoreP = usePagination((params) => listScores(examId.value, params), { keyword: '' })
 
@@ -112,6 +129,7 @@ onMounted(loadExams)
         </el-select>
       </el-form-item>
       <el-form-item v-if="examId">
+        <el-button type="success" :loading="publishing" @click="doPublishScore">发布成绩</el-button>
         <el-button type="primary" :loading="exporting" @click="doExport">导出 CSV</el-button>
       </el-form-item>
     </el-form>

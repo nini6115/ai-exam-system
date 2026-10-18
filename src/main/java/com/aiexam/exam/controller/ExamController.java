@@ -1,7 +1,6 @@
 package com.aiexam.exam.controller;
 
 import com.aiexam.common.AjaxResult;
-import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.utils.IpUtil;
 import com.aiexam.common.vo.PageVO;
@@ -10,6 +9,7 @@ import com.aiexam.exam.dto.CheatReportDTO;
 import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
+import com.aiexam.exam.dto.ExamTimeUpdateDTO;
 import com.aiexam.exam.service.AnswerSheetService;
 import com.aiexam.exam.service.ExamService;
 import com.aiexam.exam.vo.CheatReportVO;
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,9 +48,28 @@ public class ExamController {
      */
     @PostMapping("/publish")
     @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
-    @OperationLog(module = "考试管理", action = "发布考试")
     public AjaxResult<Long> publish(@Valid @RequestBody ExamPublishDTO dto) {
         return AjaxResult.success(examService.publish(dto));
+    }
+
+    /**
+     * 调整考试时间（如小测试延时/提前结束），已交卷答卷不受影响
+     */
+    @PutMapping("/{id}/time")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
+    public AjaxResult<Void> updateTime(@PathVariable Long id, @Valid @RequestBody ExamTimeUpdateDTO dto) {
+        examService.updateTime(id, dto);
+        return AjaxResult.success();
+    }
+
+    /**
+     * 发布成绩：交卷学生的成绩对学生端可见（幂等）
+     */
+    @PostMapping("/{id}/publish-score")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
+    public AjaxResult<Void> publishScore(@PathVariable Long id) {
+        examService.publishScore(id);
+        return AjaxResult.success();
     }
 
     /**

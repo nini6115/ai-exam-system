@@ -6,7 +6,8 @@ defineOptions({ name: 'ExamDetail' })
 
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getExam } from '@/api/exam'
+import { ElMessage } from 'element-plus'
+import { getExam, updateExamTime } from '@/api/exam'
 import { GENDER, EXAM_STATUS, EXAM_STATUS_TAG } from '@/constants'
 import EnumTag from '@/components/EnumTag.vue'
 
@@ -15,6 +16,35 @@ const router = useRouter()
 
 const loading = ref(false)
 const exam = ref(null)
+
+// ---------- 调整考试时间 ----------
+const timeDialogVisible = ref(false)
+const timeSaving = ref(false)
+const timeRange = ref([])
+
+function openTimeDialog() {
+  timeRange.value = [exam.value.startTime, exam.value.endTime]
+  timeDialogVisible.value = true
+}
+
+async function saveTime() {
+  if (!timeRange.value?.[0] || !timeRange.value?.[1]) {
+    ElMessage.warning('请选择起止时间')
+    return
+  }
+  timeSaving.value = true
+  try {
+    await updateExamTime(exam.value.id, {
+      startTime: timeRange.value[0],
+      endTime: timeRange.value[1],
+    })
+    ElMessage.success('考试时间已调整')
+    timeDialogVisible.value = false
+    exam.value = await getExam(exam.value.id)
+  } finally {
+    timeSaving.value = false
+  }
+}
 
 const antiCheatItems = computed(() => {
   const e = exam.value
@@ -55,6 +85,7 @@ onMounted(async () => {
           </div>
           <div style="margin-left: auto; display: flex; gap: 8px">
             <el-button @click="router.back()">返回</el-button>
+            <el-button @click="openTimeDialog">调整时间</el-button>
             <el-button type="primary" plain @click="router.push({ path: '/grading', query: { examId: exam.id } })">
               AI 判卷
             </el-button>
@@ -99,5 +130,22 @@ onMounted(async () => {
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- 调整考试时间 -->
+    <el-dialog v-model="timeDialogVisible" title="调整考试时间" width="460px">
+      <el-date-picker
+        v-model="timeRange"
+        type="datetimerange"
+        range-separator="至"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        value-format="YYYY-MM-DD HH:mm:ss"
+        style="width: 100%"
+      />
+      <template #footer>
+        <el-button @click="timeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="timeSaving" @click="saveTime">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

@@ -54,18 +54,6 @@ export const routes = [
         component: () => import('@/views/system/role/index.vue'),
         meta: { title: '角色管理', roles: ['admin'], keepAlive: true },
       },
-      {
-        path: 'system/dicts',
-        name: 'SystemDict',
-        component: () => import('@/views/system/dict/index.vue'),
-        meta: { title: '字典管理', roles: ['admin'], keepAlive: true },
-      },
-      {
-        path: 'system/logs',
-        name: 'SystemLog',
-        component: () => import('@/views/system/log/index.vue'),
-        meta: { title: '操作日志', roles: ['admin'], keepAlive: true },
-      },
 
       // ---- 题库 / 试卷（admin+teacher）----
       {

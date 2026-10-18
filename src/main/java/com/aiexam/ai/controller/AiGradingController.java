@@ -6,7 +6,6 @@ import com.aiexam.ai.vo.GradeBatchResultVO;
 import com.aiexam.ai.vo.GradeDetailVO;
 import com.aiexam.ai.vo.SheetScoreSummaryVO;
 import com.aiexam.common.AjaxResult;
-import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.constant.RoleConstants;
 import jakarta.validation.Valid;
 import org.apache.shiro.authz.annotation.Logical;
@@ -37,7 +36,6 @@ public class AiGradingController {
      */
     @PostMapping("/exams/{examId}/grade")
     @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
-    @OperationLog(module = "AI判卷", action = "批量AI判卷")
     public AjaxResult<GradeBatchResultVO> grade(@PathVariable Long examId) {
         return AjaxResult.success(aiGradingService.gradeExam(examId));
     }
@@ -57,7 +55,6 @@ public class AiGradingController {
      */
     @PutMapping("/details/{detailId}")
     @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
-    @OperationLog(module = "AI判卷", action = "人工改分")
     public AjaxResult<SheetScoreSummaryVO> manualGrade(@PathVariable Long detailId,
                                                        @Valid @RequestBody ManualGradeDTO dto) {
         return AjaxResult.success(aiGradingService.manualGrade(detailId, dto));

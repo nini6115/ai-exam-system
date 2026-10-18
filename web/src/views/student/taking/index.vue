@@ -426,7 +426,7 @@ function jumpTo(index) {
                 :key="displayIdx"
                 class="option-item"
                 :class="{ 'option-item--active': singleAnswers[currentQuestion.questionId] === displayIdx }"
-                @click="singleAnswers[currentQuestion.questionId] = displayIdx; markDirty(currentQuestion.value)"
+                @click="singleAnswers[currentQuestion.questionId] = displayIdx; markDirty(currentQuestion)"
               >
                 <span class="option-item__letter">{{ LETTERS[displayIdx] }}</span>
                 {{ currentQuestion.options[permOf(currentQuestion)[displayIdx]] }}
@@ -445,7 +445,7 @@ function jumpTo(index) {
                     const arr = multiAnswers[currentQuestion.questionId]
                     const i = arr.indexOf(displayIdx)
                     i >= 0 ? arr.splice(i, 1) : arr.push(displayIdx)
-                    markDirty(currentQuestion.value)
+                    markDirty(currentQuestion)
                   })()
                 "
               >
@@ -463,7 +463,7 @@ function jumpTo(index) {
                 class="option-item"
                 :class="{ 'option-item--active': judgeAnswers[currentQuestion.questionId] === opt }"
                 style="width: 140px"
-                @click="judgeAnswers[currentQuestion.questionId] = opt; markDirty(currentQuestion.value)"
+                @click="judgeAnswers[currentQuestion.questionId] = opt; markDirty(currentQuestion)"
               >
                 {{ opt }}
               </div>
@@ -475,7 +475,7 @@ function jumpTo(index) {
                 v-model="textAnswers[currentQuestion.questionId]"
                 placeholder="请输入答案（须与参考答案精确匹配）"
                 maxlength="200"
-                @input="markDirty(currentQuestion.value)"
+                @input="markDirty(currentQuestion)"
               />
             </div>
 
@@ -488,7 +488,7 @@ function jumpTo(index) {
                 maxlength="2000"
                 show-word-limit
                 placeholder="请输入答案"
-                @input="markDirty(currentQuestion.value)"
+                @input="markDirty(currentQuestion)"
               />
             </div>
 

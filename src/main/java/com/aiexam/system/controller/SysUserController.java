@@ -1,7 +1,6 @@
 package com.aiexam.system.controller;
 
 import com.aiexam.common.AjaxResult;
-import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.vo.PageVO;
 import com.aiexam.system.dto.AssignRoleDTO;
@@ -19,6 +18,7 @@ import com.aiexam.system.vo.LoginVO;
 import com.aiexam.system.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +46,6 @@ public class SysUserController {
      * 登录
      */
     @PostMapping("/login")
-    @OperationLog(module = "用户管理", action = "登录")
     public AjaxResult<LoginVO> login(@Valid @RequestBody LoginDTO dto,
                                      HttpServletRequest request) {
         String clientIp = getClientIp(request);
@@ -58,7 +57,6 @@ public class SysUserController {
      * 登出
      */
     @PostMapping("/logout")
-    @OperationLog(module = "用户管理", action = "登出")
     public AjaxResult<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
         sysUserService.logout(token);
         return AjaxResult.success();
@@ -70,6 +68,16 @@ public class SysUserController {
     @GetMapping("/list")
     @RequiresRoles(RoleConstants.ADMIN)
     public AjaxResult<PageVO<UserVO>> list(UserQueryDTO dto) {
+        return AjaxResult.success(sysUserService.listUsers(dto));
+    }
+
+    /**
+     * 学生列表（教师/管理员，发布考试选择考生用；只读且服务端锁定学生角色）
+     */
+    @GetMapping("/students")
+    @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
+    public AjaxResult<PageVO<UserVO>> students(UserQueryDTO dto) {
+        dto.setRoleCode(RoleConstants.STUDENT);
         return AjaxResult.success(sysUserService.listUsers(dto));
     }
 
@@ -87,7 +95,6 @@ public class SysUserController {
      */
     @PostMapping
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "新增用户")
     public AjaxResult<Long> add(@Valid @RequestBody UserAddDTO dto) {
         return AjaxResult.success(sysUserService.addUser(dto));
     }
@@ -97,7 +104,6 @@ public class SysUserController {
      */
     @PutMapping
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "修改用户")
     public AjaxResult<Void> update(@Valid @RequestBody UserUpdateDTO dto) {
         sysUserService.updateUser(dto);
         return AjaxResult.success();
@@ -108,7 +114,6 @@ public class SysUserController {
      */
     @DeleteMapping("/{id}")
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "删除用户")
     public AjaxResult<Void> delete(@PathVariable Long id) {
         sysUserService.deleteUser(id);
         return AjaxResult.success();
@@ -119,7 +124,6 @@ public class SysUserController {
      */
     @PutMapping("/resetPwd")
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "重置密码")
     public AjaxResult<Void> resetPwd(@Valid @RequestBody ResetPasswordDTO dto) {
         sysUserService.resetPassword(dto);
         return AjaxResult.success();
@@ -130,7 +134,6 @@ public class SysUserController {
      */
     @PutMapping("/status")
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "启用禁用用户")
     public AjaxResult<Void> updateStatus(@Valid @RequestBody UpdateStatusDTO dto) {
         sysUserService.updateStatus(dto);
         return AjaxResult.success();
@@ -141,7 +144,6 @@ public class SysUserController {
      */
     @PutMapping("/assignRole")
     @RequiresRoles(RoleConstants.ADMIN)
-    @OperationLog(module = "用户管理", action = "分配角色")
     public AjaxResult<Void> assignRole(@Valid @RequestBody AssignRoleDTO dto) {
         sysUserService.assignRole(dto);
         return AjaxResult.success();
@@ -151,7 +153,6 @@ public class SysUserController {
      * 修改个人资料（当前登录用户）
      */
     @PutMapping("/profile")
-    @OperationLog(module = "用户管理", action = "修改个人资料")
     public AjaxResult<Void> updateProfile(@Valid @RequestBody UpdateProfileDTO dto) {
         sysUserService.updateProfile(dto);
         return AjaxResult.success();
@@ -161,7 +162,6 @@ public class SysUserController {
      * 修改个人密码（当前登录用户）
      */
     @PutMapping("/changePwd")
-    @OperationLog(module = "用户管理", action = "修改个人密码")
     public AjaxResult<Void> changePwd(@Valid @RequestBody ChangePasswordDTO dto) {
         sysUserService.changePassword(dto);
         return AjaxResult.success();

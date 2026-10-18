@@ -5,6 +5,7 @@ import com.aiexam.common.vo.PageVO;
 import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
+import com.aiexam.exam.dto.ExamTimeUpdateDTO;
 import com.aiexam.exam.entity.Exam;
 import com.aiexam.exam.entity.ExamUser;
 import com.aiexam.exam.mapper.ExamMapper;
@@ -190,6 +191,40 @@ public class ExamServiceImpl extends ServiceImpl<ExamMapper, Exam> implements Ex
             }
         });
         return PageVO.of(page, result.getRecords());
+    }
+
+    @Override
+    public void updateTime(Long id, ExamTimeUpdateDTO dto) {
+        Exam exam = getById(id);
+        if (exam == null) {
+            throw new RuntimeException("考试不存在");
+        }
+        if (!dto.getStartTime().isBefore(dto.getEndTime())) {
+            throw new RuntimeException("开始时间必须早于结束时间");
+        }
+        // updateById 忽略 null，只更新两个时间列；已交卷答卷与判分结果不受影响
+        Exam update = new Exam();
+        update.setId(id);
+        update.setStartTime(dto.getStartTime());
+        update.setEndTime(dto.getEndTime());
+        updateById(update);
+        log.info("用户[{}]调整考试[{}]时间：{} ~ {}", UserContext.getUsername(), id, dto.getStartTime(), dto.getEndTime());
+    }
+
+    @Override
+    public void publishScore(Long id) {
+        Exam exam = getById(id);
+        if (exam == null) {
+            throw new RuntimeException("考试不存在");
+        }
+        if (Integer.valueOf(1).equals(exam.getShowScoreAfter())) {
+            return;
+        }
+        Exam update = new Exam();
+        update.setId(id);
+        update.setShowScoreAfter(1);
+        updateById(update);
+        log.info("用户[{}]发布考试[{}]成绩，学生端成绩可见", UserContext.getUsername(), id);
     }
 
     @Override

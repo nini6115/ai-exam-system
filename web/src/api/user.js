@@ -15,6 +15,9 @@ export const logout = () => request.post('/user/logout')
 /** 分页查询用户列表 admin */
 export const listUsers = (params) => request.get('/user/list', { params })
 
+/** 学生列表（教师/管理员，发布考试选考生用；服务端锁定 student 角色） */
+export const listStudents = (params) => request.get('/user/students', { params })
+
 /** 用户详情 */
 export const getUser = (id) => request.get(`/user/${id}`)
 

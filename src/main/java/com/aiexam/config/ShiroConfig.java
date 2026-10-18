@@ -34,8 +34,7 @@ public class ShiroConfig {
     /**
      * 让 @RequiresRoles 等 Shiro 注解生效
      * <p>
-     * order=2：晚于 OperationLogAspect(@Order(1))——鉴权失败也记操作日志
-     * （安全审计需要留越权尝试痕迹，result_code=403）。
+     * order=2（操作日志切面已移除，仅保留鉴权注解顺序）
      */
     @Bean
     public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(

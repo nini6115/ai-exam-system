@@ -29,6 +29,7 @@
 
     <resultMap id="ScoreItemVOResult" type="com.aiexam.analysis.vo.ScoreItemVO">
         <result property="userId"            column="user_id"/>
+        <result property="sheetId"           column="sheet_id"/>
         <result property="realName"          column="real_name"/>
         <result property="userNo"            column="user_no"/>
         <result property="sheetStatus"       column="sheet_status"/>
@@ -73,6 +74,7 @@
          （口径与统计一致：只认已交卷答卷，答题中视为未考） -->
     <select id="selectScorePage" resultMap="ScoreItemVOResult">
         SELECT eu.user_id,
+               s.id                   AS sheet_id,
                u.real_name,
                u.user_no,
                s.status               AS sheet_status,

@@ -27,5 +27,11 @@ export const submitExam = (id) => request.post(`/exam/${id}/submit`)
 /** 学生考试大厅分页（筛选 status） */
 export const listMyExams = (params) => request.get('/exam/my/list', { params })
 
+/** 调整考试时间 body:{startTime,endTime}（admin/teacher） */
+export const updateExamTime = (id, data) => request.put(`/exam/${id}/time`, data)
+
+/** 发布成绩：交卷学生的成绩对学生端可见（admin/teacher，幂等） */
+export const publishScore = (id) => request.post(`/exam/${id}/publish-score`, {})
+
 /** 防作弊上报 body:{type,description,detail} → CheatReportVO */
 export const reportCheat = (id, data) => request.post(`/exam/${id}/cheat`, data)

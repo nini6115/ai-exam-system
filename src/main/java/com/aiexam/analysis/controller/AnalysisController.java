@@ -6,7 +6,6 @@ import com.aiexam.analysis.vo.ExamStatsVO;
 import com.aiexam.analysis.vo.ScoreExportVO;
 import com.aiexam.analysis.vo.ScoreItemVO;
 import com.aiexam.common.AjaxResult;
-import com.aiexam.common.annotation.OperationLog;
 import com.aiexam.common.constant.RoleConstants;
 import com.aiexam.common.vo.PageVO;
 import org.apache.shiro.authz.annotation.Logical;
@@ -60,7 +59,6 @@ public class AnalysisController {
      */
     @GetMapping("/{examId}/export")
     @RequiresRoles(value = {RoleConstants.ADMIN, RoleConstants.TEACHER}, logical = Logical.OR)
-    @OperationLog(module = "成绩分析", action = "导出成绩明细")
     public ResponseEntity<byte[]> export(@PathVariable Long examId,
                                          @RequestParam(required = false) String keyword) {
         ScoreExportVO vo = analysisService.exportScores(examId, keyword);

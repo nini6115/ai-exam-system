@@ -18,6 +18,9 @@ public class ScoreItemVO implements Serializable {
     /** 考生ID */
     private Long userId;
 
+    /** 最新已交卷答卷ID（未考为 null），判卷复核跳转用 */
+    private Long sheetId;
+
     /** 真实姓名 */
     private String realName;
 

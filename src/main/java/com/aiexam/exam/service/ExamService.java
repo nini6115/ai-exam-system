@@ -4,6 +4,7 @@ import com.aiexam.common.vo.PageVO;
 import com.aiexam.exam.dto.ExamHallQueryDTO;
 import com.aiexam.exam.dto.ExamPublishDTO;
 import com.aiexam.exam.dto.ExamQueryDTO;
+import com.aiexam.exam.dto.ExamTimeUpdateDTO;
 import com.aiexam.exam.vo.ExamDetailVO;
 import com.aiexam.exam.vo.ExamHallVO;
 import com.aiexam.exam.vo.ExamVO;
@@ -44,4 +45,19 @@ public interface ExamService {
      * @return 考试分页
      */
     PageVO<ExamHallVO> getMyExams(ExamHallQueryDTO dto);
+
+    /**
+     * 调整考试时间（如小测试延时/提前结束），已交卷答卷不受影响
+     *
+     * @param id  考试ID
+     * @param dto 新的开始/结束时间
+     */
+    void updateTime(Long id, ExamTimeUpdateDTO dto);
+
+    /**
+     * 发布成绩：交卷学生的成绩对学生可见（show_score_after 置 1，幂等）
+     *
+     * @param id 考试ID
+     */
+    void publishScore(Long id);
 }
