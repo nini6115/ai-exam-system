@@ -67,6 +67,16 @@ public class ExamPaperServiceImpl extends ServiceImpl<ExamPaperMapper, ExamPaper
     @Autowired
     private ExamPaperQuestionMapper examPaperQuestionMapper;
 
+    /** 及格分：传入则校验不超总分，未传默认总分的60%（智能/手动组卷共用） */
+    private BigDecimal resolvePassScore(BigDecimal passScore, BigDecimal totalScore) {
+        if (passScore != null && passScore.compareTo(totalScore) > 0) {
+            throw new RuntimeException("及格分不能大于试卷总分");
+        }
+        return passScore != null
+                ? passScore
+                : totalScore.multiply(DEFAULT_PASS_RATE).setScale(1, RoundingMode.HALF_UP);
+    }
+
     // ==================== 智能组卷 ====================
 
     @Override
@@ -109,9 +119,7 @@ public class ExamPaperServiceImpl extends ServiceImpl<ExamPaperMapper, ExamPaper
         paper.setName(dto.getTitle());
         paper.setDescription(dto.getDescription());
         paper.setTotalScore(totalScore);
-        paper.setPassScore(dto.getPassScore() != null
-                ? dto.getPassScore()
-                : totalScore.multiply(DEFAULT_PASS_RATE).setScale(1, RoundingMode.HALF_UP));
+        paper.setPassScore(resolvePassScore(dto.getPassScore(), totalScore));
         paper.setDuration(dto.getDuration());
         paper.setQuestionCount(sortOrder);
         paper.setCreatorId(UserContext.getUserId());
@@ -162,9 +170,7 @@ public class ExamPaperServiceImpl extends ServiceImpl<ExamPaperMapper, ExamPaper
         paper.setName(dto.getTitle());
         paper.setDescription(dto.getDescription());
         paper.setTotalScore(totalScore);
-        paper.setPassScore(dto.getPassScore() != null
-                ? dto.getPassScore()
-                : totalScore.multiply(DEFAULT_PASS_RATE).setScale(1, RoundingMode.HALF_UP));
+        paper.setPassScore(resolvePassScore(dto.getPassScore(), totalScore));
         paper.setDuration(dto.getDuration());
         paper.setQuestionCount(sortOrder);
         paper.setCreatorId(UserContext.getUserId());

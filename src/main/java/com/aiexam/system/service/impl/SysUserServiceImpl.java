@@ -311,6 +311,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    public UserVO getProfile() {
+        // 只能查自己的，userId 从 Token 取
+        return getUserDetail(UserContext.getUserId());
+    }
+
+    @Override
     public void updateProfile(UpdateProfileDTO dto) {
         // 只能改自己的，userId 从 Token 取，不从前端传
         Long userId = UserContext.getUserId();

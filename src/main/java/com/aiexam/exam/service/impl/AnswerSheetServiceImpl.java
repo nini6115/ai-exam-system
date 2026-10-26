@@ -76,6 +76,12 @@ public class AnswerSheetServiceImpl implements AnswerSheetService {
     private static final int DEFAULT_MAX_ATTEMPTS = 1;
     /** 每轮自动收卷最大扫描条数 */
     private static final int AUTO_SUBMIT_BATCH = 100;
+    /**
+     * 草稿宽限期：应交卷后仍接受答案保存、草稿 TTL 同步延长至此。
+     * 否则 TTL 恰在应交卷时刻到期，超时收卷（Quartz/前端倒计时交卷）读到的草稿必为空，
+     * 有作答记录的考生也会被判 0 分。
+     */
+    private static final Duration ANSWER_GRACE = Duration.ofMinutes(5);
     /** 试卷题目缓存 key 前缀（试卷发布后题目不可改，缓存 24h） */
     private static final String PAPER_QUESTIONS_KEY = "exam:paper:questions:";
     /** 草稿答案 key 模板：exam:answer:{examId}:{userId}，Hash 结构 */
@@ -211,7 +217,9 @@ public class AnswerSheetServiceImpl implements AnswerSheetService {
         if (sheet.getStatus() != SHEET_STATUS_ANSWERING) {
             throw new RuntimeException("考试已交卷，无法保存答案");
         }
-        if (LocalDateTime.now().isAfter(sheet.getEndTime())) {
+        // 应交卷后留宽限期：保住倒计时归零瞬间前端冲刷的最后一批答案，超时收卷才能带着草稿判分
+        Duration remainGrace = Duration.between(LocalDateTime.now(), sheet.getEndTime().plus(ANSWER_GRACE));
+        if (remainGrace.isNegative() || remainGrace.isZero()) {
             throw new RuntimeException("考试时间已到，无法保存答案");
         }
 
@@ -226,8 +234,8 @@ public class AnswerSheetServiceImpl implements AnswerSheetService {
         String key = String.format(ANSWER_KEY_TEMPLATE, examId, userId);
         redisTemplate.opsForHash().put(key, String.valueOf(dto.getQuestionId()),
                 dto.getAnswer() == null ? "" : dto.getAnswer());
-        // TTL 刷到应交卷时间（兜底防止交卷失败后草稿残留）
-        redisTemplate.expire(key, Duration.between(LocalDateTime.now(), sheet.getEndTime()));
+        // TTL 刷到应交卷时间+宽限期（兜底防止交卷失败后草稿残留，且保证超时收卷时草稿还在）
+        redisTemplate.expire(key, remainGrace);
     }
 
     // ==================== 交卷（三个入口） ====================

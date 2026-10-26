@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // 后端 context-path 为 /api，开发期代理转发解决跨域，不做 rewrite
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:9090',
         changeOrigin: true,
       },
     },

@@ -451,6 +451,40 @@ class AnswerSheetServiceImplTest {
         assertThat(service.autoSubmit(SHEET_ID)).isFalse();
     }
 
+    // ==================== 保存草稿（应交卷宽限期） ====================
+
+    @Test
+    @DisplayName("保存答案：超过应交卷时间但在宽限期内 → 仍接受写入，TTL 不少于宽限期")
+    void saveAnswer_withinGrace_accepted() {
+        when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
+        // 应交卷时间在 1 分钟前：旧逻辑必拒，宽限期内应放行
+        when(answerSheetMapper.selectOne(any(Wrapper.class)))
+                .thenReturn(buildSheet(1, LocalDateTime.now().minusMinutes(1), 0));
+        when(examPaperQuestionMapper.selectPaperQuestions(PAPER_ID))
+                .thenReturn(List.of(buildPaperQuestion()));
+        HashOperations<String, Object, Object> hashOps = redisTemplate.opsForHash();
+
+        service.saveAnswer(EXAM_ID, buildSaveDTO());
+
+        verify(hashOps).put(eq(DRAFT_KEY), eq(String.valueOf(QUESTION_ID)), eq("B"));
+        // TTL 覆盖到应交卷时间+宽限期：此刻距宽限期结束约 4 分钟
+        verify(redisTemplate).expire(eq(DRAFT_KEY), argThat(d ->
+                ((java.time.Duration) d).toMinutes() >= 3 && ((java.time.Duration) d).toMinutes() <= 5));
+    }
+
+    @Test
+    @DisplayName("保存答案：超过应交卷时间且超出宽限期 → 拒绝写入")
+    void saveAnswer_afterGrace_rejected() {
+        when(examMapper.selectById(EXAM_ID)).thenReturn(buildExam());
+        when(answerSheetMapper.selectOne(any(Wrapper.class)))
+                .thenReturn(buildSheet(1, LocalDateTime.now().minusMinutes(10), 0));
+
+        assertThatThrownBy(() -> service.saveAnswer(EXAM_ID, buildSaveDTO()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("考试时间已到，无法保存答案");
+        verify(redisTemplate.opsForHash(), never()).put(any(), any(), any());
+    }
+
     // ==================== 测试数据 ====================
 
     private Exam buildExam() {
@@ -507,6 +541,13 @@ class AnswerSheetServiceImplTest {
         dto.setType(type);
         dto.setDescription(description);
         dto.setDetail(detail);
+        return dto;
+    }
+
+    private com.aiexam.exam.dto.AnswerSaveDTO buildSaveDTO() {
+        com.aiexam.exam.dto.AnswerSaveDTO dto = new com.aiexam.exam.dto.AnswerSaveDTO();
+        dto.setQuestionId(QUESTION_ID);
+        dto.setAnswer("B");
         return dto;
     }
 }

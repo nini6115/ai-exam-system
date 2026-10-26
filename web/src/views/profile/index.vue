@@ -3,10 +3,10 @@
  * 个人中心：资料编辑 + 修改密码
  * 改密成功后后端会强制下线该用户全部 token，前端同步本地登出并回登录页
  */
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { updateProfile, changePassword } from '@/api/user'
+import { getProfile, updateProfile, changePassword } from '@/api/user'
 import { useUserStore } from '@/store/user'
 
 defineOptions({ name: 'Profile' })
@@ -23,6 +23,18 @@ const profileForm = reactive({
   phone: '',
   email: '',
   avatar: '',
+})
+
+// 回显已保存的资料，否则改完再看是空白，像"没保存"
+onMounted(async () => {
+  const vo = await getProfile()
+  Object.assign(profileForm, {
+    realName: vo.realName || '',
+    gender: vo.gender ?? 0,
+    phone: vo.phone || '',
+    email: vo.email || '',
+    avatar: vo.avatar || '',
+  })
 })
 
 const profileRules = {
@@ -105,7 +117,12 @@ async function savePassword() {
               <el-input v-model="profileForm.email" maxlength="100" />
             </el-form-item>
             <el-form-item label="头像地址">
-              <el-input v-model="profileForm.avatar" maxlength="255" placeholder="选填，图片 URL" />
+              <div style="display: flex; align-items: center; gap: 8px; width: 100%">
+                <el-avatar :size="40" :src="profileForm.avatar || undefined">
+                  {{ (profileForm.realName || '用').slice(0, 1) }}
+                </el-avatar>
+                <el-input v-model="profileForm.avatar" maxlength="255" placeholder="选填，图片 URL" />
+              </div>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="profileSaving" @click="saveProfile">保存资料</el-button>

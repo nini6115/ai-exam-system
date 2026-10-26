@@ -229,7 +229,7 @@ function onCopyBlock(e) {
 }
 
 function onKeyBlock(e) {
-  if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'a', 'p'].includes(e.key.toLowerCase())) {
+  if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'a', 'p'].includes(e.key.toLowerCase())) {
     e.preventDefault()
   }
 }
@@ -241,6 +241,7 @@ function bindCheatListeners() {
   window.addEventListener('beforeunload', onBeforeUnload)
   if (exam.value?.forbidCopy === 1) {
     document.addEventListener('copy', onCopyBlock)
+    document.addEventListener('paste', onCopyBlock)
     document.addEventListener('cut', onCopyBlock)
     document.addEventListener('contextmenu', onCopyBlock)
     document.addEventListener('selectstart', onCopyBlock)
@@ -263,6 +264,7 @@ function stopAll() {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('beforeunload', onBeforeUnload)
     document.removeEventListener('copy', onCopyBlock)
+    document.removeEventListener('paste', onCopyBlock)
     document.removeEventListener('cut', onCopyBlock)
     document.removeEventListener('contextmenu', onCopyBlock)
     document.removeEventListener('selectstart', onCopyBlock)

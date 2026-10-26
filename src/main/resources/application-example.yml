@@ -4,7 +4,7 @@
 # application.yml 已被 .gitignore 排除，不会被提交。
 # ============================================================
 server:
-  port: 8080
+  port: 9090
   servlet:
     context-path: /api
 

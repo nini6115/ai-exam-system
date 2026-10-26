@@ -85,6 +85,11 @@ public interface SysUserService extends IService<SysUser> {
     void assignRole(AssignRoleDTO dto);
 
     /**
+     * 查询个人资料（当前登录用户）
+     */
+    UserVO getProfile();
+
+    /**
      * 修改个人资料（当前登录用户）
      */
     void updateProfile(UpdateProfileDTO dto);

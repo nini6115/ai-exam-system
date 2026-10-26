@@ -150,6 +150,14 @@ public class SysUserController {
     }
 
     /**
+     * 查询个人资料（当前登录用户）
+     */
+    @GetMapping("/profile")
+    public AjaxResult<UserVO> getProfile() {
+        return AjaxResult.success(sysUserService.getProfile());
+    }
+
+    /**
      * 修改个人资料（当前登录用户）
      */
     @PutMapping("/profile")

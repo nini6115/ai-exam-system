@@ -39,6 +39,9 @@ export const updateStatus = (data) => request.put('/user/status', data)
 /** 分配角色（全量覆盖）body:{userId,roleIds} */
 export const assignRole = (data) => request.put('/user/assignRole', data)
 
+/** 查询个人资料（当前用户）→ UserVO */
+export const getProfile = () => request.get('/user/profile')
+
 /** 修改个人资料（当前用户）UpdateProfileDTO */
 export const updateProfile = (data) => request.put('/user/profile', data)
 

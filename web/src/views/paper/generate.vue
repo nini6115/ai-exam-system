@@ -107,13 +107,7 @@ async function submit() {
         </el-col>
         <el-col :span="6">
           <el-form-item label="及格分">
-            <el-input-number
-              v-model="form.passScore"
-              :min="0"
-              :max="totalScore || 100"
-              placeholder="默认总分 60%"
-              style="width: 100%"
-            />
+            <el-input-number v-model="form.passScore" :min="0" placeholder="默认总分 60%" style="width: 100%" />
           </el-form-item>
         </el-col>
       </el-row>
